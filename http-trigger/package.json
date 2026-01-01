@@ -1,0 +1,23 @@
+{
+  "name": "cre-http-trigger",
+  "version": "1.0.0",
+  "description": "Script to trigger CRE workflows via HTTP",
+  "type": "module",
+  "main": "trigger.ts",
+  "scripts": {
+    "trigger": "tsx trigger.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "json-stable-stringify": "^1.0.1",
+    "uuid": "^9.0.1",
+    "viem": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/uuid": "^9.0.7",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}
+

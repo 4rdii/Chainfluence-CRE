@@ -16,7 +16,7 @@ This CRE workflow implements a trustless advertisement protocol where:
    - Allows CRE workflow to withdraw funds when criteria are met
 
 2. **CRE Workflow**:
-   - **Cron Trigger**: Periodically checks active campaigns
+   - **HTTP Trigger**: On-demand campaign checks triggered by external systems (backend API)
    - **Twitter API Integration**: Fetches view counts & tweet text from twitterapi.io
    - **Content Validation**: Compares on-chain `contentText` with the live tweet text
    - **Criteria Validation**: Checks if minimum views are met and deadline hasn't passed
@@ -27,10 +27,11 @@ This CRE workflow implements a trustless advertisement protocol where:
 ```
 1. Advertiser deposits funds → Escrow Contract
 2. Influencer posts content → Platform (X/Telegram)
-3. Cron trigger fires → Check campaign criteria
-4. Fetch tweet data → twitterapi.io (with consensus)
-5. Validate content + criteria → Tweet text matches on-chain `contentText`, views >= minViews, deadline not passed
-6. Withdraw funds → Transfer to influencer
+3. Backend/External system → HTTP POST to workflow trigger (with signed JWT)
+4. Workflow receives campaignId → Fetch campaign data from contract
+5. Fetch tweet data → twitterapi.io (with consensus)
+6. Validate content + criteria → Tweet text matches on-chain `contentText`, views >= minViews, deadline not passed
+7. Withdraw funds → Transfer to influencer
 ```
 
 ## Setup
@@ -89,24 +90,42 @@ Until the backend supplies tweet URLs automatically, list each campaign ID and c
 ]
 ```
 
-### 5. Update General Configuration
+### 5. Configure Authorized Keys
+
+The HTTP trigger requires authorized EVM addresses that can trigger the workflow. Add your backend's address:
+
+```json
+{
+  "authorizedKeys": [
+    "0xYourBackendWalletAddress"
+  ]
+}
+```
+
+### 6. Update General Configuration
 
 Edit `config.staging.json`:
-- `checkSchedule`: Cron schedule for periodic checks (e.g., `*/5 * * * * *` for every 5 seconds)
 - `xApiBaseUrl`: twitterapi.io base URL (default: `https://api.twitterapi.io`)
 - `manualTweetUrls`: Temporary mapping from campaign IDs to tweet URLs
 - `escrowAddress`: Deployed escrow contract address
 - `chainName`: Target blockchain (e.g., `ethereum-testnet-sepolia`)
+- `authorizedKeys`: EVM addresses allowed to trigger the workflow
 
 ## Running the Workflow
 
 ### Simulation
 
-From the project root:
+From the project root, simulate with an HTTP trigger payload:
 
 ```bash
-cre workflow simulate my-workflow --target=staging-settings
+# Basic - uses config mapping or on-chain contentText
+cre workflow simulate my-workflow --target=staging-settings --input='{"campaignId":"1"}'
+
+# With tweet URL override - backend provides the URL directly
+cre workflow simulate my-workflow --target=staging-settings --input='{"campaignId":"1","tweetUrl":"https://x.com/username/status/1234567890"}'
 ```
+
+The `--input` flag provides the campaign ID and optionally the tweet URL to check.
 
 ### Deployment
 
@@ -114,6 +133,56 @@ Once tested:
 
 ```bash
 cre workflow deploy my-workflow --target=staging-settings
+```
+
+### Triggering Deployed Workflows
+
+After deployment, your backend can trigger the workflow by sending an authenticated HTTP POST request to the CRE gateway:
+
+**Endpoint**: `https://01.gateway.zone-a.cre.chain.link`
+
+**Request format** (JSON-RPC 2.0):
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "workflow_execute",
+  "params": {
+    "workflowId": "your-workflow-id",
+    "input": {
+      "campaignId": "1",
+      "tweetUrl": "https://x.com/username/status/1234567890"
+    }
+  },
+  "id": 1
+}
+```
+
+**Input Parameters:**
+- `campaignId` (string, required): Campaign ID to check
+- `tweetUrl` (string, optional): Tweet URL to verify. Priority order:
+  1. HTTP trigger payload (if provided)
+  2. Config `manualTweetUrls` mapping
+  3. On-chain `contentText` field
+
+**Authentication**: The request must be signed with a JWT token using the private key corresponding to an authorized address. See the [CRE HTTP Trigger documentation](https://docs.chain.link/cre/guides/workflow/using-triggers/http-trigger/overview-go) for details on generating JWT tokens.
+
+**Example using curl** (with JWT):
+```bash
+curl -X POST https://01.gateway.zone-a.cre.chain.link \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "workflow_execute",
+    "params": {
+      "workflowId": "your-workflow-id",
+      "input": {
+        "campaignId": "1",
+        "tweetUrl": "https://x.com/username/status/1234567890"
+      }
+    },
+    "id": 1
+  }'
 ```
 
 ## Contract Interface

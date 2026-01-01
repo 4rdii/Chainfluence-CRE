@@ -17,7 +17,7 @@
 # ==========================================================================
 staging-settings:
   user-workflow:
-    workflow-name: "my-workflow-staging"
+    workflow-name: "ad-escrow-workflow-staging"
   workflow-artifacts:
     workflow-path: "."
     config-path: "./config.staging.json"
@@ -25,11 +25,13 @@ staging-settings:
   rpcs:
     - chain-name: ethereum-testnet-sepolia
       url: https://ethereum-sepolia-rpc.publicnode.com
+    - chain-name: ethereum-mainnet
+      url: https://ethereum-rpc.publicnode.com
 
 # ==========================================================================
 production-settings:
   user-workflow:
-    workflow-name: "my-workflow-production"
+    workflow-name: "ad-escrow-workflow-production"
   workflow-artifacts:
     workflow-path: "."
     config-path: "./config.production.json"
@@ -37,3 +39,5 @@ production-settings:
   rpcs:
     - chain-name: ethereum-testnet-sepolia
       url: https://ethereum-sepolia-rpc.publicnode.com
+    - chain-name: ethereum-mainnet
+      url: https://ethereum-rpc.publicnode.com

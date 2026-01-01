@@ -17,7 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/smartcontractkit/cre-sdk-go/capabilities/blockchain/evm"
 	"github.com/smartcontractkit/cre-sdk-go/capabilities/networking/http"
-	"github.com/smartcontractkit/cre-sdk-go/capabilities/scheduler/cron"
 	"github.com/smartcontractkit/cre-sdk-go/cre"
 	"github.com/smartcontractkit/cre-sdk-go/cre/wasm"
 )
@@ -36,8 +35,6 @@ type ManualTweetConfig struct {
 
 // Config contains workflow configuration.
 type Config struct {
-	// Cron schedule for periodic campaign checks
-	CheckSchedule string `json:"checkSchedule"`
 	// X (Twitter) API configuration
 	XApiBaseUrl string `json:"xApiBaseUrl"`
 	// API key for twitterapi.io (should be kept secret)
@@ -46,6 +43,8 @@ type Config struct {
 	Evms []EvmConfig `json:"evms"`
 	// Manual tweet URLs (temporary until backend provides them)
 	ManualTweetUrls []ManualTweetConfig `json:"manualTweetUrls"`
+	// Authorized keys for HTTP trigger (EVM addresses that can trigger the workflow)
+	AuthorizedKeys []string `json:"authorizedKeys"`
 }
 
 // Campaign represents a campaign from the escrow contract.
@@ -77,7 +76,13 @@ type DeliveryActionResult struct {
 	Message      string
 }
 
-// InitWorkflow initializes the workflow with multiple triggers.
+// HTTPTriggerInput defines the payload structure for HTTP triggers.
+type HTTPTriggerInput struct {
+	CampaignID string `json:"campaignId"`
+	TweetURL   string `json:"tweetUrl,omitempty"` // Optional: Backend can provide tweet URL directly
+}
+
+// InitWorkflow initializes the workflow with HTTP trigger.
 func InitWorkflow(config *Config, logger *slog.Logger, secretsProvider cre.SecretsProvider) (cre.Workflow[*Config], error) {
 	// Populate API key from secrets if not specified directly in config
 	if config.XApiKey == "" && secretsProvider != nil {
@@ -94,14 +99,27 @@ func InitWorkflow(config *Config, logger *slog.Logger, secretsProvider cre.Secre
 		}
 	}
 
+	// Convert authorized addresses to HTTP trigger keys
+	var authorizedKeys []*http.AuthorizedKey
+	for _, addr := range config.AuthorizedKeys {
+		authorizedKeys = append(authorizedKeys, &http.AuthorizedKey{
+			Type:      http.KeyType_KEY_TYPE_ECDSA_EVM,
+			PublicKey: addr,
+		})
+	}
+
+	logger.Info("Initializing workflow with HTTP trigger",
+		"authorizedKeys", len(authorizedKeys),
+	)
+
 	return cre.Workflow[*Config]{
-		// Cron trigger: Periodically check all active campaigns
+		// HTTP trigger: Allow external systems to trigger campaign checks on-demand
 		cre.Handler(
-			cron.Trigger(&cron.Config{Schedule: config.CheckSchedule}),
-			onPeriodicCheck,
+			http.Trigger(&http.Config{
+				AuthorizedKeys: authorizedKeys,
+			}),
+			onHTTPTrigger,
 		),
-		// TODO: Add EVM log trigger for DeliveryActionCalled events
-		// This would require the event trigger capability which may need additional setup
 	}, nil
 }
 
@@ -114,10 +132,46 @@ func (config *Config) tweetURLForCampaign(campaignID *big.Int) string {
 	return ""
 }
 
-// onPeriodicCheck is triggered by cron to check all active campaigns.
-func onPeriodicCheck(config *Config, runtime cre.Runtime, trigger *cron.Payload) (*DeliveryActionResult, error) {
+// getTweetURLSource returns a human-readable description of where the tweet URL came from
+func getTweetURLSource(override string, config *Config, campaignID *big.Int, contentText string) string {
+	if override != "" {
+		return "http-trigger"
+	}
+	if config.tweetURLForCampaign(campaignID) != "" {
+		return "config-mapping"
+	}
+	if contentText != "" {
+		return "onchain-contentText"
+	}
+	return "unknown"
+}
+
+// onHTTPTrigger is triggered when an HTTP request is received.
+func onHTTPTrigger(config *Config, runtime cre.Runtime, trigger *http.Payload) (*DeliveryActionResult, error) {
 	logger := runtime.Logger()
-	logger.Info("Periodic check triggered", "time", time.Now())
+
+	// Parse the input payload to get the campaign ID
+	var input HTTPTriggerInput
+	if err := json.Unmarshal(trigger.Input, &input); err != nil {
+		return nil, fmt.Errorf("failed to parse HTTP trigger input: %w", err)
+	}
+
+	triggeredBy := "simulation"
+	if trigger.Key != nil && trigger.Key.PublicKey != "" {
+		triggeredBy = trigger.Key.PublicKey
+	}
+
+	logger.Info("HTTP trigger received",
+		"campaignID", input.CampaignID,
+		"tweetURL", input.TweetURL,
+		"triggeredBy", triggeredBy,
+	)
+
+	// Parse campaign ID from string to big.Int
+	campaignID := new(big.Int)
+	if _, ok := campaignID.SetString(input.CampaignID, 10); !ok {
+		return nil, fmt.Errorf("invalid campaign ID format: %s", input.CampaignID)
+	}
 
 	// Get the first EVM configuration
 	evmConfig := config.Evms[0]
@@ -138,17 +192,13 @@ func onPeriodicCheck(config *Config, runtime cre.Runtime, trigger *cron.Payload)
 		return nil, fmt.Errorf("failed to create escrow contract instance: %w", err)
 	}
 
-	// For now, we'll process campaigns one by one
-	// In production, you'd want to track campaign IDs or query them from events
-	// This is a simplified version - you'd need to implement campaign ID tracking
-
-	// Example: Check campaign ID 1 (in production, iterate through active campaigns)
-	campaignID := big.NewInt(1)
-	return processCampaign(config, runtime, escrowContract, campaignID)
+	// Process the specified campaign with optional tweet URL override
+	return processCampaignWithTweetURL(config, runtime, escrowContract, campaignID, input.TweetURL)
 }
 
-// processCampaign checks a campaign's criteria and withdraws if met.
-func processCampaign(config *Config, runtime cre.Runtime, escrowContract *escrow.Escrow, campaignID *big.Int) (*DeliveryActionResult, error) {
+// processCampaignWithTweetURL checks a campaign's criteria and withdraws if met.
+// tweetURLOverride allows the HTTP trigger to provide the tweet URL directly.
+func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowContract *escrow.Escrow, campaignID *big.Int, tweetURLOverride string) (*DeliveryActionResult, error) {
 	logger := runtime.Logger()
 	logger.Info("Processing campaign", "campaignID", campaignID.String())
 
@@ -242,8 +292,14 @@ func processCampaign(config *Config, runtime cre.Runtime, escrowContract *escrow
 		// Optionally, you might want to refund advertiser or handle differently
 	}
 
-	// Determine tweet URL to inspect
-	tweetURL := config.tweetURLForCampaign(campaignID)
+	// Determine tweet URL to inspect (priority order):
+	// 1. HTTP trigger override (if provided)
+	// 2. Config mapping (manualTweetUrls)
+	// 3. On-chain contentText
+	tweetURL := tweetURLOverride
+	if tweetURL == "" {
+		tweetURL = config.tweetURLForCampaign(campaignID)
+	}
 	if tweetURL == "" {
 		tweetURL = campaign.ContentText
 	}
@@ -257,6 +313,8 @@ func processCampaign(config *Config, runtime cre.Runtime, escrowContract *escrow
 			Message:      "No tweet URL configured for campaign",
 		}, nil
 	}
+
+	logger.Info("Using tweet URL", "url", tweetURL, "source", getTweetURLSource(tweetURLOverride, config, campaignID, campaign.ContentText))
 
 	// Check if criteria are met by fetching view count from X API
 	views, tweetText, err := fetchXViewCount(config, runtime, tweetURL)
