@@ -189,7 +189,7 @@ curl -X POST https://01.gateway.zone-a.cre.chain.link \
 
 The workflow expects the following contract functions:
 
-- `deposit(uint256 campaignId, address influencer, string contentText, uint256 minViews, uint256 deadline)`: Deposit funds for a campaign
+- `deposit(address influencer, string contentText, uint256 minViews, uint256 expiryDeadline, uint64 campaignDuration) returns (uint256 campaignId)`: Deposit funds for a campaign (auto-generates campaign ID)
 - `getCampaign(uint256 campaignId)`: Get campaign details
 - `onReport(bytes metadata, bytes report)`: Called by the Keystone forwarder to process fulfillment reports
 - `deliveryAction(uint256 campaignId)`: Trigger manual check (emits event)

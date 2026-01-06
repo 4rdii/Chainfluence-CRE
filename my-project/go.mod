@@ -10,7 +10,6 @@ require (
 	github.com/smartcontractkit/cre-sdk-go v1.0.0
 	github.com/smartcontractkit/cre-sdk-go/capabilities/blockchain/evm v1.0.0-beta.0
 	github.com/smartcontractkit/cre-sdk-go/capabilities/networking/http v1.0.0-beta.0
-	github.com/smartcontractkit/cre-sdk-go/capabilities/scheduler/cron v1.0.0-beta.0
 	google.golang.org/protobuf v1.36.7
 )
 

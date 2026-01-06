@@ -51,19 +51,43 @@ type Config struct {
 // Using the generated type from escrow package
 type Campaign = escrow.AdEscrowCampaign
 
+// CampaignState enum values matching contract
+const (
+	CampaignStateActive    uint8 = 0 // Campaign is active, waiting for criteria to be met
+	CampaignStateWithdrawn uint8 = 1 // Criteria met and funds successfully withdrawn
+	CampaignStateRefunded  uint8 = 2 // Campaign expired and funds refunded to the advertiser
+)
+
+// CreActions enum values matching contract
+const (
+	CreActionRefund  uint8 = 0 // Refund the funds to the advertiser
+	CreActionRelease uint8 = 1 // Release the funds to the influencer
+)
+
+// ActionType represents the action taken by the workflow
+type ActionType string
+
+const (
+	ActionNone    ActionType = "none"
+	ActionRelease ActionType = "release"
+	ActionRefund  ActionType = "refund"
+)
+
 // TwitterAPIResponse represents the response from twitterapi.io for tweet metrics.
 type TwitterAPIResponse struct {
 	Tweets []struct {
 		ID        string `json:"id"`
 		ViewCount int64  `json:"viewCount"`
 		Text      string `json:"text"`
+		CreatedAt string `json:"createdAt"` // Format: "Tue Dec 30 12:08:48 +0000 2025"
 	} `json:"tweets"`
 }
 
-// TweetObservation is returned from consensus HTTP calls to capture view counts and text.
+// TweetObservation is returned from consensus HTTP calls to capture view counts, text, and creation timestamp.
 type TweetObservation struct {
-	ViewCount int64  `consensus_aggregation:"median"`
-	Text      string `consensus_aggregation:"identical"`
+	ViewCount     int64  `consensus_aggregation:"median"`
+	Text          string `consensus_aggregation:"identical"`
+	CreatedAtUnix int64  `consensus_aggregation:"median"` // Unix timestamp in seconds
 }
 
 // DeliveryActionResult represents the result of processing a delivery action.
@@ -72,7 +96,7 @@ type DeliveryActionResult struct {
 	Success      bool
 	ViewsChecked int64
 	MinViews     *big.Int
-	Withdrawn    bool
+	Action       ActionType // Action taken: release, refund, or none
 	Message      string
 }
 
@@ -196,7 +220,7 @@ func onHTTPTrigger(config *Config, runtime cre.Runtime, trigger *http.Payload) (
 	return processCampaignWithTweetURL(config, runtime, escrowContract, campaignID, input.TweetURL)
 }
 
-// processCampaignWithTweetURL checks a campaign's criteria and withdraws if met.
+// processCampaignWithTweetURL checks a campaign's criteria and either releases funds or refunds.
 // tweetURLOverride allows the HTTP trigger to provide the tweet URL directly.
 func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowContract *escrow.Escrow, campaignID *big.Int, tweetURLOverride string) (*DeliveryActionResult, error) {
 	logger := runtime.Logger()
@@ -218,7 +242,7 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 		}
 	}
 
-	callResult := escrowContract.GetCampaign(runtime, escrow.GetCampaignInput{CampaignId: campaignID}, big.NewInt(-3))
+	callResult := escrowContract.GetCampaign(runtime, escrow.GetCampaignInput{CampaignId: campaignID}, big.NewInt(-2))
 
 	logger.Info("Calling getCampaign", "campaignID", campaignID.String(), "contract", escrowContract.Address.Hex())
 
@@ -242,7 +266,7 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 				Success:      false,
 				ViewsChecked: 0,
 				MinViews:     big.NewInt(0),
-				Withdrawn:    false,
+				Action:       ActionNone,
 				Message:      fmt.Sprintf("Campaign %s does not exist yet (may need to wait for block finality)", campaignID.String()),
 			}, nil
 		}
@@ -256,7 +280,7 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 			Success:      false,
 			ViewsChecked: 0,
 			MinViews:     big.NewInt(0),
-			Withdrawn:    false,
+			Action:       ActionNone,
 			Message:      fmt.Sprintf("Campaign %s does not exist (zero address)", campaignID.String()),
 		}, nil
 	}
@@ -265,31 +289,64 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 	logger.Info("Retrieved campaign data",
 		"advertiser", campaign.Advertiser.Hex(),
 		"influencer", campaign.Influencer.Hex(),
+		"token", campaign.Token.Hex(),
 		"amount", campaign.Amount.String(),
 		"contentText", campaign.ContentText,
 		"minViews", campaign.MinViews.String(),
+		"campaignDuration", campaign.CampaignDuration,
 		"deadline", campaign.Deadline.String(),
-		"fulfilled", campaign.Fulfilled,
-		"withdrawn", campaign.Withdrawn,
+		"state", campaign.State,
 	)
 
-	// Check if already withdrawn
-	if campaign.Withdrawn {
+	// Check campaign state - only process Active campaigns
+	if campaign.State != CampaignStateActive {
+		stateStr := "unknown"
+		switch campaign.State {
+		case CampaignStateWithdrawn:
+			stateStr = "withdrawn"
+		case CampaignStateRefunded:
+			stateStr = "refunded"
+		}
 		return &DeliveryActionResult{
 			CampaignID:   campaignID,
 			Success:      false,
 			ViewsChecked: 0,
-			MinViews:     big.NewInt(0),
-			Withdrawn:    false,
-			Message:      "Campaign already withdrawn",
+			MinViews:     campaign.MinViews,
+			Action:       ActionNone,
+			Message:      fmt.Sprintf("Campaign already %s", stateStr),
 		}, nil
 	}
 
-	// Check if deadline has passed
+	// Check if deadline has passed - if so, trigger refund
 	currentTime := big.NewInt(time.Now().Unix())
 	if currentTime.Cmp(campaign.Deadline) > 0 {
-		logger.Info("Campaign deadline passed", "deadline", campaign.Deadline.String())
-		// Optionally, you might want to refund advertiser or handle differently
+		logger.Info("Campaign deadline passed, triggering refund",
+			"campaignID", campaignID.String(),
+			"deadline", campaign.Deadline.String(),
+			"currentTime", currentTime.String(),
+		)
+
+		// Encode and submit refund report
+		reportPayload, err := encodeRefundReport(campaignID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode refund report: %w", err)
+		}
+
+		logger.Info("Refund report encoded", "campaignID", campaignID.String(), "payload", fmt.Sprintf("%x", reportPayload))
+
+		if err := submitReport(runtime, escrowContract, reportPayload); err != nil {
+			return nil, fmt.Errorf("failed to submit refund report: %w", err)
+		}
+		logger.Info("Refund report submitted to forwarder", "campaignID", campaignID.String())
+
+		return &DeliveryActionResult{
+			CampaignID:   campaignID,
+			Success:      true,
+			ViewsChecked: 0,
+			MinViews:     campaign.MinViews,
+			Action:       ActionRefund,
+			Message:      "Campaign deadline passed, funds refunded to advertiser",
+		}, nil
 	}
 
 	// Determine tweet URL to inspect (priority order):
@@ -309,7 +366,7 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 			Success:      false,
 			ViewsChecked: 0,
 			MinViews:     campaign.MinViews,
-			Withdrawn:    false,
+			Action:       ActionNone,
 			Message:      "No tweet URL configured for campaign",
 		}, nil
 	}
@@ -317,9 +374,19 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 	logger.Info("Using tweet URL", "url", tweetURL, "source", getTweetURLSource(tweetURLOverride, config, campaignID, campaign.ContentText))
 
 	// Check if criteria are met by fetching view count from X API
-	views, tweetText, err := fetchXViewCount(config, runtime, tweetURL)
+	views, tweetText, createdAtUnix, err := fetchXViewCount(config, runtime, tweetURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch view count: %w", err)
+		// If we can't fetch tweet data, it might mean the tweet doesn't exist
+		// Log but continue - don't refund automatically here (let caller decide)
+		logger.Warn("Failed to fetch tweet data", "error", err.Error())
+		return &DeliveryActionResult{
+			CampaignID:   campaignID,
+			Success:      false,
+			ViewsChecked: 0,
+			MinViews:     campaign.MinViews,
+			Action:       ActionNone,
+			Message:      fmt.Sprintf("Failed to fetch tweet data: %s", err.Error()),
+		}, nil
 	}
 
 	if campaign.ContentText != "" && tweetText != "" && tweetText != campaign.ContentText {
@@ -333,38 +400,62 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 			Success:      false,
 			ViewsChecked: views,
 			MinViews:     campaign.MinViews,
-			Withdrawn:    false,
+			Action:       ActionNone,
 			Message:      "Tweet content does not match expected campaign content",
 		}, nil
 	}
 
-	logger.Info("Fetched view count", "views", views, "minViews", campaign.MinViews.String())
+	logger.Info("Fetched view count", "views", views, "minViews", campaign.MinViews.String(), "createdAtUnix", createdAtUnix)
 
 	// Check if minimum views are met
 	viewsBig := big.NewInt(views)
 	if viewsBig.Cmp(campaign.MinViews) >= 0 {
-		// Criteria met! Prepare report payload for Keystone forwarder
-		logger.Info("Criteria met, preparing report payload", "campaignID", campaignID.String())
+		// Criteria met! Prepare release report payload for Keystone forwarder
+		logger.Info("Criteria met, preparing release report", "campaignID", campaignID.String())
 
-		reportPayload, err := encodeFulfillmentReport(campaignID, viewsBig)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode fulfillment report: %w", err)
+		// Calculate postedDuration from actual tweet creation time
+		var postedDuration uint64 = 0
+		if createdAtUnix > 0 {
+			// Calculate duration: current time - tweet creation time
+			currentTime := time.Now().Unix()
+			durationSeconds := currentTime - createdAtUnix
+			if durationSeconds < 0 {
+				// This shouldn't happen, but handle edge case
+				logger.Warn("Tweet creation time is in the future", "createdAtUnix", createdAtUnix, "currentTime", currentTime)
+				postedDuration = 0
+			} else {
+				postedDuration = uint64(durationSeconds)
+			}
+			logger.Info("Calculated posting duration", "postedDuration", postedDuration, "createdAtUnix", createdAtUnix, "currentTime", currentTime)
+		} else {
+			// If createdAt parsing failed, fall back to old behavior
+			// Only set duration if campaign requires it (but this will fail validation)
+			if campaign.CampaignDuration > 0 {
+				logger.Warn("Cannot calculate duration (createdAt parsing failed), but campaign requires duration", "campaignDuration", campaign.CampaignDuration)
+				// Set to 0, which will fail the contract validation if duration is required
+				postedDuration = 0
+			}
 		}
 
-		logger.Info("Fulfillment report encoded", "campaignID", campaignID.String(), "payload", fmt.Sprintf("%x", reportPayload))
+		reportPayload, err := encodeReleaseReport(campaignID, viewsBig, postedDuration)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode release report: %w", err)
+		}
+
+		logger.Info("Release report encoded", "campaignID", campaignID.String(), "payload", fmt.Sprintf("%x", reportPayload))
 
 		if err := submitReport(runtime, escrowContract, reportPayload); err != nil {
-			return nil, fmt.Errorf("failed to submit report: %w", err)
+			return nil, fmt.Errorf("failed to submit release report: %w", err)
 		}
-		logger.Info("Report submitted to forwarder", "campaignID", campaignID.String())
+		logger.Info("Release report submitted to forwarder", "campaignID", campaignID.String())
 
 		return &DeliveryActionResult{
 			CampaignID:   campaignID,
 			Success:      true,
 			ViewsChecked: views,
 			MinViews:     campaign.MinViews,
-			Withdrawn:    true,
-			Message:      "Funds withdrawn successfully",
+			Action:       ActionRelease,
+			Message:      "Criteria met, funds released to influencer",
 		}, nil
 	}
 
@@ -373,22 +464,23 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 		Success:      false,
 		ViewsChecked: views,
 		MinViews:     campaign.MinViews,
-		Withdrawn:    false,
+		Action:       ActionNone,
 		Message:      fmt.Sprintf("Criteria not met: %d < %s views", views, campaign.MinViews.String()),
 	}, nil
 }
 
-// fetchXViewCount fetches the view count and text for a tweet from X API.
-func fetchXViewCount(config *Config, runtime cre.Runtime, tweetURL string) (int64, string, error) {
+// fetchXViewCount fetches the view count, text, and creation timestamp for a tweet from X API.
+// Returns: viewCount, text, createdAtUnix (Unix timestamp in seconds), error
+func fetchXViewCount(config *Config, runtime cre.Runtime, tweetURL string) (int64, string, int64, error) {
 
 	if config.XApiKey == "" {
-		return 0, "", fmt.Errorf("twitter API key not configured")
+		return 0, "", 0, fmt.Errorf("twitter API key not configured")
 	}
 
 	// Extract tweet ID from URL
 	tweetID, err := extractTweetID(tweetURL)
 	if err != nil {
-		return 0, "", fmt.Errorf("failed to extract tweet ID: %w", err)
+		return 0, "", 0, fmt.Errorf("failed to extract tweet ID: %w", err)
 	}
 
 	// Build twitterapi.io request
@@ -423,12 +515,28 @@ func fetchXViewCount(config *Config, runtime cre.Runtime, tweetURL string) (int6
 				return TweetObservation{}, fmt.Errorf("tweet %s missing in response", tweetID)
 			}
 
-			viewCount := apiResp.Tweets[0].ViewCount
-			tweetText := apiResp.Tweets[0].Text
-			logger.Info("Fetched tweet data from API", "tweetID", tweetID, "views", viewCount)
+			tweet := apiResp.Tweets[0]
+			viewCount := tweet.ViewCount
+			tweetText := tweet.Text
+
+			// Parse createdAt timestamp (format: "Tue Dec 30 12:08:48 +0000 2025")
+			// Twitter uses RFC1123Z format: "Mon Jan 2 15:04:05 -0700 2006"
+			createdAtUnix := int64(0)
+			if tweet.CreatedAt != "" {
+				parsedTime, err := time.Parse("Mon Jan 2 15:04:05 -0700 2006", tweet.CreatedAt)
+				if err != nil {
+					logger.Warn("Failed to parse createdAt timestamp", "createdAt", tweet.CreatedAt, "error", err)
+					// Continue with createdAtUnix = 0, which will be handled in duration calculation
+				} else {
+					createdAtUnix = parsedTime.Unix()
+				}
+			}
+
+			logger.Info("Fetched tweet data from API", "tweetID", tweetID, "views", viewCount, "createdAt", tweet.CreatedAt, "createdAtUnix", createdAtUnix)
 			return TweetObservation{
-				ViewCount: viewCount,
-				Text:      tweetText,
+				ViewCount:     viewCount,
+				Text:          tweetText,
+				CreatedAtUnix: createdAtUnix,
 			}, nil
 		},
 		cre.ConsensusAggregationFromTags[TweetObservation](),
@@ -436,14 +544,104 @@ func fetchXViewCount(config *Config, runtime cre.Runtime, tweetURL string) (int6
 
 	tweetData, err := tweetDataPromise.Await()
 	if err != nil {
-		return 0, "", fmt.Errorf("failed to fetch tweet data with consensus: %w", err)
+		return 0, "", 0, fmt.Errorf("failed to fetch tweet data with consensus: %w", err)
 	}
 
-	return tweetData.ViewCount, tweetData.Text, nil
+	return tweetData.ViewCount, tweetData.Text, tweetData.CreatedAtUnix, nil
 }
 
-func encodeFulfillmentReport(campaignID, actualViews *big.Int) ([]byte, error) {
-	return abiEncodeUint256Pair(campaignID, actualViews)
+// encodeReleaseReport encodes a CreReport for releasing funds to influencer.
+// Contract expects: CreReport { action: Release, data: abi.encode(campaignId, actualViews, postedDuration) }
+func encodeReleaseReport(campaignID, actualViews *big.Int, postedDuration uint64) ([]byte, error) {
+	// First encode the inner data: (uint256 campaignId, uint256 actualViews, uint64 postedDuration)
+	innerData, err := encodeReleaseData(campaignID, actualViews, postedDuration)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode release data: %w", err)
+	}
+
+	// Then encode the CreReport struct: (uint8 action, bytes data)
+	return encodeCreReport(CreActionRelease, innerData)
+}
+
+// encodeRefundReport encodes a CreReport for refunding funds to advertiser.
+// Contract expects: CreReport { action: Refund, data: abi.encode(campaignId) }
+func encodeRefundReport(campaignID *big.Int) ([]byte, error) {
+	// First encode the inner data: (uint256 campaignId)
+	innerData, err := encodeRefundData(campaignID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode refund data: %w", err)
+	}
+
+	// Then encode the CreReport struct: (uint8 action, bytes data)
+	return encodeCreReport(CreActionRefund, innerData)
+}
+
+// encodeCreReport encodes a CreReport struct: (uint8 action, bytes data)
+// Solidity's abi.decode expects structs with dynamic types to have an outer offset
+func encodeCreReport(action uint8, data []byte) ([]byte, error) {
+	uint8Type, err := abi.NewType("uint8", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create uint8 ABI type: %w", err)
+	}
+
+	bytesType, err := abi.NewType("bytes", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create bytes ABI type: %w", err)
+	}
+
+	// Encode as tuple: (uint8, bytes)
+	args := abi.Arguments{
+		{Type: uint8Type}, // action
+		{Type: bytesType}, // data
+	}
+
+	tupleData, err := args.Pack(action, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack tuple: %w", err)
+	}
+
+	// When Solidity decodes a struct containing dynamic types using abi.decode,
+	// it expects an outer offset (0x20 = 32 bytes) pointing to the tuple data
+	// Prepend the offset to match Solidity's struct encoding format
+	offset := make([]byte, 32)
+	offset[31] = 0x20 // Offset of 32 bytes to the tuple data
+
+	return append(offset, tupleData...), nil
+}
+
+// encodeReleaseData encodes: (uint256 campaignId, uint256 actualViews, uint64 postedDuration)
+func encodeReleaseData(campaignID, actualViews *big.Int, postedDuration uint64) ([]byte, error) {
+	uint256Type, err := abi.NewType("uint256", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create uint256 ABI type: %w", err)
+	}
+
+	uint64Type, err := abi.NewType("uint64", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create uint64 ABI type: %w", err)
+	}
+
+	args := abi.Arguments{
+		{Type: uint256Type}, // campaignId
+		{Type: uint256Type}, // actualViews
+		{Type: uint64Type},  // postedDuration
+	}
+
+	return args.Pack(campaignID, actualViews, postedDuration)
+}
+
+// encodeRefundData encodes: (uint256 campaignId)
+func encodeRefundData(campaignID *big.Int) ([]byte, error) {
+	uint256Type, err := abi.NewType("uint256", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create uint256 ABI type: %w", err)
+	}
+
+	args := abi.Arguments{
+		{Type: uint256Type}, // campaignId
+	}
+
+	return args.Pack(campaignID)
 }
 
 // extractTweetID extracts the tweet ID from a Twitter/X URL.

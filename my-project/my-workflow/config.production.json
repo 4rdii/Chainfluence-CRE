@@ -3,7 +3,7 @@
   "xApiKey": "",
   "evms": [
     {
-      "escrowAddress": "0x1e34128a274115D63Fe7a6d6A8A7342531076cc8",
+      "escrowAddress": "0x502c3323D62425316bE18C09B751c5Ce09FCC943",
       "chainName": "ethereum-testnet-sepolia",
       "chainSelector": 16015286601757825753
     }
