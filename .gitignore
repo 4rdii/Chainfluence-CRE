@@ -1,6 +1,2 @@
-.env
-*.env
-node_modules/
-dist/
-.vercel
-http-trigger/
+./http-trigger
+./.claude
