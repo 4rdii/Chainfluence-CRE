@@ -1,17 +1,9 @@
 {
-  "xApiBaseUrl": "https://api.twitterapi.io",
-  "xApiKey": "",
   "evms": [
     {
-      "escrowAddress": "0x502c3323D62425316bE18C09B751c5Ce09FCC943",
+      "escrowAddress": "0x09431B4603E4Aa7511dD9341f2852fD031eA8C71",
       "chainName": "ethereum-testnet-sepolia",
       "chainSelector": 16015286601757825753
-    }
-  ],
-  "manualTweetUrls": [
-    {
-      "campaignId": "1",
-      "tweetUrl": "https://x.com/"
     }
   ],
   "authorizedKeys": [

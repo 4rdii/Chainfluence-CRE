@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1771300898819,
+      "tag": "0000_familiar_masked_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771310667661,
+      "tag": "0001_lame_warstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771488439032,
+      "tag": "0002_add_is_direct_deal_to_campaigns",
+      "breakpoints": true
+    }
+  ]
+}

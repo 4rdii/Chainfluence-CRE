@@ -39,6 +39,11 @@ This repo ties together the on-chain escrow contracts and the Chainlink CRE work
 - For CRE, store API keys with `cre secrets set <name> --target=<target>` rather than embedding them in configs.
 - Never commit `.env`, `secrets.yaml` values, or broadcast logs that may leak private data.
 
+### TODO
+
+- [ ] **Enforce post duration in workflow** — `main.go` calculates `postedDuration` from the tweet's `created_at` and has `campaign.CampaignDuration` from the contract, but never compares them before releasing funds. Add a check: if `postedDuration < campaign.CampaignDuration`, return `ActionNone` instead of releasing.
+- [ ] **Channel owner check on propose** — `POST /api/channels/:id/propose` in the backend does not verify that the requesting user owns the channel being proposed to. Add a guard so advertisers cannot spoof proposals as if they came from a different channel.
+
 ### License
 
 This project is released under the MIT License (see [`LICENSE`](LICENSE)). Use at your own risk; audit/modify before deploying to production networks.

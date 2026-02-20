@@ -1,0 +1,152 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Chainfluence Dark Theme */
+  --font-size: 16px;
+  
+  /* Background Colors */
+  --background: #0A0A0F;
+  --card: #12121A;
+  --elevated: #1A1A2E;
+  --border-color: #2A2A3E;
+  
+  /* Text Colors */
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  
+  /* Accent Colors */
+  --accent-violet: #7C3AED;
+  --accent-blue: #3B82F6;
+  
+  /* Status Colors */
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  
+  /* shadcn/ui compatibility */
+  --foreground: #F8FAFC;
+  --card-foreground: #F8FAFC;
+  --popover: #12121A;
+  --popover-foreground: #F8FAFC;
+  --primary: #7C3AED;
+  --primary-foreground: #ffffff;
+  --secondary: #1A1A2E;
+  --secondary-foreground: #F8FAFC;
+  --muted: #1A1A2E;
+  --muted-foreground: #94A3B8;
+  --accent: #1A1A2E;
+  --accent-foreground: #F8FAFC;
+  --destructive: #EF4444;
+  --destructive-foreground: #ffffff;
+  --border: #2A2A3E;
+  --input: #12121A;
+  --input-background: #12121A;
+  --ring: #7C3AED;
+  
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-elevated: var(--elevated);
+  --color-border-color: var(--border-color);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-blue: var(--accent-blue);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border-color outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-text-primary;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  input, textarea {
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+  
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+  }
+}

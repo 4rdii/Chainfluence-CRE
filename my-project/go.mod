@@ -1,16 +1,14 @@
 module my-project
 
-go 1.24.5
-
-toolchain go1.24.10
+go 1.25.3
 
 require (
 	github.com/ethereum/go-ethereum v1.16.4
-	github.com/smartcontractkit/chainlink-protos/cre/go v0.0.0-20250918131840-564fe2776a35
-	github.com/smartcontractkit/cre-sdk-go v1.0.0
-	github.com/smartcontractkit/cre-sdk-go/capabilities/blockchain/evm v1.0.0-beta.0
+	github.com/smartcontractkit/chainlink-protos/cre/go v0.0.0-20260204183622-63ecea457961
+	github.com/smartcontractkit/cre-sdk-go v1.2.0
+	github.com/smartcontractkit/cre-sdk-go/capabilities/blockchain/evm v1.0.0-beta.5
 	github.com/smartcontractkit/cre-sdk-go/capabilities/networking/http v1.0.0-beta.0
-	google.golang.org/protobuf v1.36.7
+	google.golang.org/protobuf v1.36.8
 )
 
 require (

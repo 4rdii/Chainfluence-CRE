@@ -7,14 +7,17 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
-	"os"
+	"net/url"
 	"strings"
 	"time"
 
-	"my-project/contracts/evm/src/generated/escrow"
+	"bytes"
+
+	"my-project/contracts/evm/src/generated/escrow_v2"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/smartcontractkit/cre-sdk-go/capabilities/blockchain/evm"
 	"github.com/smartcontractkit/cre-sdk-go/capabilities/networking/http"
 	"github.com/smartcontractkit/cre-sdk-go/cre"
@@ -25,37 +28,30 @@ import (
 type EvmConfig struct {
 	EscrowAddress string `json:"escrowAddress"`
 	ChainName     string `json:"chainName"`
-}
-
-// ManualTweetConfig pairs a campaign ID with the tweet URL to inspect.
-type ManualTweetConfig struct {
-	CampaignID string `json:"campaignId"`
-	TweetURL   string `json:"tweetUrl"`
+	ChainSelector uint64 `json:"chainSelector,omitempty"`
 }
 
 // Config contains workflow configuration.
 type Config struct {
-	// X (Twitter) API configuration
-	XApiBaseUrl string `json:"xApiBaseUrl"`
-	// API key for twitterapi.io (should be kept secret)
-	XApiKey string `json:"xApiKey"`
+	// X API v2 Bearer Token (Official Twitter API)
+	XApiBearerToken string `json:"xApiBearerToken"`
 	// EVM chain configurations
 	Evms []EvmConfig `json:"evms"`
-	// Manual tweet URLs (temporary until backend provides them)
-	ManualTweetUrls []ManualTweetConfig `json:"manualTweetUrls"`
 	// Authorized keys for HTTP trigger (EVM addresses that can trigger the workflow)
 	AuthorizedKeys []string `json:"authorizedKeys"`
 }
 
-// Campaign represents a campaign from the escrow contract.
-// Using the generated type from escrow package
-type Campaign = escrow.AdEscrowCampaign
+// Campaign represents a deal from the escrow V2 contract (same struct shape for deal data).
+type Campaign = escrow_v2.AdEscrowV2Campaign
 
-// CampaignState enum values matching contract
+// CampaignState enum values matching AdEscrowV2 contract (6 on-chain states)
 const (
-	CampaignStateActive    uint8 = 0 // Campaign is active, waiting for criteria to be met
-	CampaignStateWithdrawn uint8 = 1 // Criteria met and funds successfully withdrawn
-	CampaignStateRefunded  uint8 = 2 // Campaign expired and funds refunded to the advertiser
+	CampaignStateFunded    uint8 = 0 // Advertiser deposited, waiting for influencer to accept
+	CampaignStateAccepted  uint8 = 1 // Influencer accepted, can post tweet
+	CampaignStateCompleted uint8 = 2 // Verification passed, funds released
+	CampaignStateRefunded  uint8 = 3 // Expired or failed, funds returned
+	CampaignStateDisputed  uint8 = 4 // Dispute raised by either party
+	CampaignStateCancelled uint8 = 5 // Advertiser cancelled before acceptance
 )
 
 // CreActions enum values matching contract
@@ -73,21 +69,34 @@ const (
 	ActionRefund  ActionType = "refund"
 )
 
-// TwitterAPIResponse represents the response from twitterapi.io for tweet metrics.
-type TwitterAPIResponse struct {
-	Tweets []struct {
-		ID        string `json:"id"`
-		ViewCount int64  `json:"viewCount"`
-		Text      string `json:"text"`
-		CreatedAt string `json:"createdAt"` // Format: "Tue Dec 30 12:08:48 +0000 2025"
-	} `json:"tweets"`
+// XAPIv2Response represents the response from X API v2 for tweet data.
+type XAPIv2Response struct {
+	Data struct {
+		ID            string `json:"id"`
+		Text          string `json:"text"`
+		CreatedAt     string `json:"created_at"` // ISO 8601: "2025-12-30T12:08:48.000Z"
+		PublicMetrics struct {
+			ImpressionCount int64 `json:"impression_count"`
+			LikeCount       int64 `json:"like_count"`
+			RetweetCount    int64 `json:"retweet_count"`
+			ReplyCount      int64 `json:"reply_count"`
+			BookmarkCount   int64 `json:"bookmark_count"`
+		} `json:"public_metrics"`
+		EditControls struct {
+			EditsRemaining int    `json:"edits_remaining"`
+			IsEditEligible bool   `json:"is_edit_eligible"`
+			EditableUntil  string `json:"editable_until"`
+		} `json:"edit_controls"`
+	} `json:"data"`
 }
 
 // TweetObservation is returned from consensus HTTP calls to capture view counts, text, and creation timestamp.
 type TweetObservation struct {
-	ViewCount     int64  `consensus_aggregation:"median"`
-	Text          string `consensus_aggregation:"identical"`
-	CreatedAtUnix int64  `consensus_aggregation:"median"` // Unix timestamp in seconds
+	ViewCount      int64  `consensus_aggregation:"median"`
+	Text           string `consensus_aggregation:"identical"`
+	CreatedAtUnix  int64  `consensus_aggregation:"median"`
+	IsEditEligible bool   `consensus_aggregation:"identical"`
+	EditsRemaining int    `consensus_aggregation:"median"`
 }
 
 // DeliveryActionResult represents the result of processing a delivery action.
@@ -103,23 +112,19 @@ type DeliveryActionResult struct {
 // HTTPTriggerInput defines the payload structure for HTTP triggers.
 type HTTPTriggerInput struct {
 	CampaignID string `json:"campaignId"`
-	TweetURL   string `json:"tweetUrl,omitempty"` // Optional: Backend can provide tweet URL directly
+	TweetURL   string `json:"tweetUrl,omitempty"`  // Backend provides tweet URL
+	ChainName  string `json:"chainName,omitempty"` // Target chain (defaults to first EVM config)
 }
 
 // InitWorkflow initializes the workflow with HTTP trigger.
 func InitWorkflow(config *Config, logger *slog.Logger, secretsProvider cre.SecretsProvider) (cre.Workflow[*Config], error) {
-	// Populate API key from secrets if not specified directly in config
-	if config.XApiKey == "" && secretsProvider != nil {
-		secret, err := secretsProvider.GetSecret(&cre.SecretRequest{Id: "API_KEY"}).Await()
+	// Populate Bearer token from secrets if not specified directly in config
+	if config.XApiBearerToken == "" && secretsProvider != nil {
+		secret, err := secretsProvider.GetSecret(&cre.SecretRequest{Id: "BEARER_TOKEN"}).Await()
 		if err != nil {
-			logger.Warn("unable to load X_API_KEY secret", "error", err)
+			logger.Warn("unable to load X_BEARER_TOKEN secret", "error", err)
 		} else if secret.GetValue() != "" {
-			config.XApiKey = secret.GetValue()
-		}
-	}
-	if config.XApiKey == "" {
-		if envKey := os.Getenv("X_API_KEY"); envKey != "" {
-			config.XApiKey = envKey
+			config.XApiBearerToken = secret.GetValue()
 		}
 	}
 
@@ -147,27 +152,23 @@ func InitWorkflow(config *Config, logger *slog.Logger, secretsProvider cre.Secre
 	}, nil
 }
 
-func (config *Config) tweetURLForCampaign(campaignID *big.Int) string {
-	for _, entry := range config.ManualTweetUrls {
-		if entry.CampaignID == campaignID.String() {
-			return entry.TweetURL
+// findEvmConfig looks up EVM config by chain name, defaulting to first entry.
+func (config *Config) findEvmConfig(chainName string) EvmConfig {
+	if chainName != "" {
+		for _, evm := range config.Evms {
+			if evm.ChainName == chainName {
+				return evm
+			}
 		}
 	}
-	return ""
+	return config.Evms[0]
 }
 
-// getTweetURLSource returns a human-readable description of where the tweet URL came from
-func getTweetURLSource(override string, config *Config, campaignID *big.Int, contentText string) string {
-	if override != "" {
-		return "http-trigger"
-	}
-	if config.tweetURLForCampaign(campaignID) != "" {
-		return "config-mapping"
-	}
-	if contentText != "" {
-		return "onchain-contentText"
-	}
-	return "unknown"
+// normalizeText deterministically normalizes text for content comparison across consensus nodes.
+func normalizeText(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.ToLower(s)
+	return strings.Join(strings.Fields(s), " ")
 }
 
 // onHTTPTrigger is triggered when an HTTP request is received.
@@ -188,6 +189,7 @@ func onHTTPTrigger(config *Config, runtime cre.Runtime, trigger *http.Payload) (
 	logger.Info("HTTP trigger received",
 		"campaignID", input.CampaignID,
 		"tweetURL", input.TweetURL,
+		"chainName", input.ChainName,
 		"triggeredBy", triggeredBy,
 	)
 
@@ -197,8 +199,8 @@ func onHTTPTrigger(config *Config, runtime cre.Runtime, trigger *http.Payload) (
 		return nil, fmt.Errorf("invalid campaign ID format: %s", input.CampaignID)
 	}
 
-	// Get the first EVM configuration
-	evmConfig := config.Evms[0]
+	// Resolve EVM config (multi-chain support)
+	evmConfig := config.findEvmConfig(input.ChainName)
 	chainSelector, err := evm.ChainSelectorFromName(evmConfig.ChainName)
 	if err != nil {
 		return nil, fmt.Errorf("invalid chain name: %w", err)
@@ -210,137 +212,135 @@ func onHTTPTrigger(config *Config, runtime cre.Runtime, trigger *http.Payload) (
 
 	escrowAddress := common.HexToAddress(evmConfig.EscrowAddress)
 
-	// Create escrow contract instance
-	escrowContract, err := escrow.NewEscrow(evmClient, escrowAddress, nil)
+	// Create escrow V2 contract instance
+	escrowContract, err := escrow_v2.NewEscrowV2(evmClient, escrowAddress, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create escrow contract instance: %w", err)
 	}
 
-	// Process the specified campaign with optional tweet URL override
+	if input.TweetURL == "" {
+		return nil, fmt.Errorf("tweetUrl is required in HTTP trigger payload")
+	}
+
+	// Process the specified campaign with tweet URL from trigger
 	return processCampaignWithTweetURL(config, runtime, escrowContract, campaignID, input.TweetURL)
 }
 
-// processCampaignWithTweetURL checks a campaign's criteria and either releases funds or refunds.
+// processCampaignWithTweetURL checks a deal's criteria and either releases funds or refunds.
 // tweetURLOverride allows the HTTP trigger to provide the tweet URL directly.
-func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowContract *escrow.Escrow, campaignID *big.Int, tweetURLOverride string) (*DeliveryActionResult, error) {
+func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowContract *escrow_v2.EscrowV2, dealID *big.Int, tweetURLOverride string) (*DeliveryActionResult, error) {
 	logger := runtime.Logger()
-	logger.Info("Processing campaign", "campaignID", campaignID.String())
+	logger.Info("Processing deal", "dealID", dealID.String())
 
-	// Read campaign data from contract
-	// Use nil for blockNumber to get the latest finalized block
-	// If the campaign was just created, we might need to wait for finality
-
-	// Encode the call to see the calldata
-	codec, err := escrow.NewCodec()
+	// Read deal data from contract (latest finalized block)
+	codec, err := escrow_v2.NewCodec()
 	if err == nil {
-		calldata, encodeErr := codec.EncodeGetCampaignMethodCall(escrow.GetCampaignInput{CampaignId: campaignID})
+		calldata, encodeErr := codec.EncodeGetDealMethodCall(escrow_v2.GetDealInput{DealId: dealID})
 		if encodeErr == nil {
-			logger.Info("Calldata for getCampaign",
-				"campaignID", campaignID.String(),
+			logger.Info("Calldata for getDeal",
+				"dealID", dealID.String(),
 				"calldata", fmt.Sprintf("0x%x", calldata),
 				"contract", escrowContract.Address.Hex())
 		}
 	}
 
-	callResult := escrowContract.GetCampaign(runtime, escrow.GetCampaignInput{CampaignId: campaignID}, big.NewInt(-2))
+	callResult := escrowContract.GetDeal(runtime, escrow_v2.GetDealInput{DealId: dealID}, big.NewInt(-2))
 
-	logger.Info("Calling getCampaign", "campaignID", campaignID.String(), "contract", escrowContract.Address.Hex())
+	logger.Info("Calling getDeal", "dealID", dealID.String(), "contract", escrowContract.Address.Hex())
 
 	campaign, err := callResult.Await()
 	if err != nil {
-		// Check if the error is due to contract revert (campaign doesn't exist)
 		errMsg := strings.ToLower(err.Error())
-		logger.Info("Error reading campaign", "campaignID", campaignID.String(), "error", err.Error())
+		logger.Info("Error reading deal", "dealID", dealID.String(), "error", err.Error())
 
-		// Check for various error patterns that indicate campaign doesn't exist
-		if strings.Contains(errMsg, "campaign does not exist") ||
+		if strings.Contains(errMsg, "deal does not exist") ||
 			strings.Contains(errMsg, "execution reverted") ||
 			strings.Contains(errMsg, "attempting to unmarshal an empty string") ||
 			strings.Contains(errMsg, "failed to execute capability") {
-			// Campaign doesn't exist - this is expected for campaigns that haven't been created yet
-			// or if we're querying a finalized block before the campaign was created
-			// Return a graceful result instead of failing
-			logger.Info("Campaign not found, returning graceful result", "campaignID", campaignID.String())
+			logger.Info("Deal not found, returning graceful result", "dealID", dealID.String())
 			return &DeliveryActionResult{
-				CampaignID:   campaignID,
+				CampaignID:   dealID,
 				Success:      false,
 				ViewsChecked: 0,
 				MinViews:     big.NewInt(0),
 				Action:       ActionNone,
-				Message:      fmt.Sprintf("Campaign %s does not exist yet (may need to wait for block finality)", campaignID.String()),
+				Message:      fmt.Sprintf("Deal %s does not exist yet (may need to wait for block finality)", dealID.String()),
 			}, nil
 		}
-		return nil, fmt.Errorf("failed to read campaign: %w", err)
+		return nil, fmt.Errorf("failed to read deal: %w", err)
 	}
 
-	// Check if campaign exists (advertiser address will be zero if campaign doesn't exist)
 	if campaign.Advertiser == (common.Address{}) {
 		return &DeliveryActionResult{
-			CampaignID:   campaignID,
+			CampaignID:   dealID,
 			Success:      false,
 			ViewsChecked: 0,
 			MinViews:     big.NewInt(0),
 			Action:       ActionNone,
-			Message:      fmt.Sprintf("Campaign %s does not exist (zero address)", campaignID.String()),
+			Message:      fmt.Sprintf("Deal %s does not exist (zero address)", dealID.String()),
 		}, nil
 	}
 
-	// Log campaign data for debugging
-	logger.Info("Retrieved campaign data",
+	logger.Info("Retrieved deal data",
 		"advertiser", campaign.Advertiser.Hex(),
 		"influencer", campaign.Influencer.Hex(),
 		"token", campaign.Token.Hex(),
 		"amount", campaign.Amount.String(),
-		"contentText", campaign.ContentText,
+		"contentHash", fmt.Sprintf("%x", campaign.ContentHash),
 		"minViews", campaign.MinViews.String(),
 		"campaignDuration", campaign.CampaignDuration,
 		"deadline", campaign.Deadline.String(),
 		"state", campaign.State,
 	)
 
-	// Check campaign state - only process Active campaigns
-	if campaign.State != CampaignStateActive {
-		stateStr := "unknown"
-		switch campaign.State {
-		case CampaignStateWithdrawn:
-			stateStr = "withdrawn"
-		case CampaignStateRefunded:
-			stateStr = "refunded"
+	// Check campaign state - only process Funded or Accepted campaigns
+	if campaign.State != CampaignStateFunded && campaign.State != CampaignStateAccepted {
+		stateNames := map[uint8]string{
+			CampaignStateFunded:    "funded",
+			CampaignStateAccepted:  "accepted",
+			CampaignStateCompleted: "completed",
+			CampaignStateRefunded:  "refunded",
+			CampaignStateDisputed:  "disputed",
+			CampaignStateCancelled: "cancelled",
+		}
+		stateStr := stateNames[campaign.State]
+		if stateStr == "" {
+			stateStr = "unknown"
 		}
 		return &DeliveryActionResult{
-			CampaignID:   campaignID,
+			CampaignID:   dealID,
 			Success:      false,
 			ViewsChecked: 0,
 			MinViews:     campaign.MinViews,
 			Action:       ActionNone,
-			Message:      fmt.Sprintf("Campaign already %s", stateStr),
+			Message:      fmt.Sprintf("Deal is %s, not actionable", stateStr),
 		}, nil
 	}
 
 	// Check if deadline has passed - if so, trigger refund
 	currentTime := big.NewInt(time.Now().Unix())
 	if currentTime.Cmp(campaign.Deadline) > 0 {
-		logger.Info("Campaign deadline passed, triggering refund",
-			"campaignID", campaignID.String(),
-			"deadline", campaign.Deadline.String(),
+			logger.Info("Deal deadline passed, triggering refund",
+				"dealID", dealID.String(),
+				"deadline", campaign.Deadline.String(),
 			"currentTime", currentTime.String(),
 		)
 
 		// Encode and submit refund report
-		reportPayload, err := encodeRefundReport(campaignID)
+		reportPayload, err := encodeRefundReport(dealID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode refund report: %w", err)
 		}
 
-		logger.Info("Refund report encoded", "campaignID", campaignID.String(), "payload", fmt.Sprintf("%x", reportPayload))
+		logger.Info("Refund report encoded", "dealID", dealID.String(), "payload", fmt.Sprintf("%x", reportPayload))
 
 		if err := submitReport(runtime, escrowContract, reportPayload); err != nil {
 			return nil, fmt.Errorf("failed to submit refund report: %w", err)
 		}
-		logger.Info("Refund report submitted to forwarder", "campaignID", campaignID.String())
+		logger.Info("Refund report submitted to forwarder", "dealID", dealID.String())
 
 		return &DeliveryActionResult{
-			CampaignID:   campaignID,
+			CampaignID:   dealID,
 			Success:      true,
 			ViewsChecked: 0,
 			MinViews:     campaign.MinViews,
@@ -349,38 +349,26 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 		}, nil
 	}
 
-	// Determine tweet URL to inspect (priority order):
-	// 1. HTTP trigger override (if provided)
-	// 2. Config mapping (manualTweetUrls)
-	// 3. On-chain contentText
 	tweetURL := tweetURLOverride
 	if tweetURL == "" {
-		tweetURL = config.tweetURLForCampaign(campaignID)
-	}
-	if tweetURL == "" {
-		tweetURL = campaign.ContentText
-	}
-	if tweetURL == "" {
 		return &DeliveryActionResult{
-			CampaignID:   campaignID,
+			CampaignID:   dealID,
 			Success:      false,
 			ViewsChecked: 0,
 			MinViews:     campaign.MinViews,
 			Action:       ActionNone,
-			Message:      "No tweet URL configured for campaign",
+			Message:      "No tweet URL provided",
 		}, nil
 	}
 
-	logger.Info("Using tweet URL", "url", tweetURL, "source", getTweetURLSource(tweetURLOverride, config, campaignID, campaign.ContentText))
+	logger.Info("Using tweet URL", "url", tweetURL)
 
-	// Check if criteria are met by fetching view count from X API
-	views, tweetText, createdAtUnix, err := fetchXViewCount(config, runtime, tweetURL)
+	// Fetch tweet data from X API v2 (with consensus)
+	obs, err := fetchXViewCount(config, runtime, tweetURL)
 	if err != nil {
-		// If we can't fetch tweet data, it might mean the tweet doesn't exist
-		// Log but continue - don't refund automatically here (let caller decide)
 		logger.Warn("Failed to fetch tweet data", "error", err.Error())
 		return &DeliveryActionResult{
-			CampaignID:   campaignID,
+			CampaignID:   dealID,
 			Success:      false,
 			ViewsChecked: 0,
 			MinViews:     campaign.MinViews,
@@ -389,20 +377,55 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 		}, nil
 	}
 
-	if campaign.ContentText != "" && tweetText != "" && tweetText != campaign.ContentText {
-		logger.Warn("Tweet content mismatch",
-			"campaignID", campaignID.String(),
-			"expectedContent", campaign.ContentText,
-			"actualContent", tweetText,
+	views := obs.ViewCount
+	createdAtUnix := obs.CreatedAtUnix
+
+	// Edit detection: if edits remaining < 5, the tweet was edited → reject
+	if obs.EditsRemaining < 5 {
+		logger.Warn("Tweet was edited",
+			"dealID", dealID.String(),
+			"editsRemaining", obs.EditsRemaining,
+			"isEditEligible", obs.IsEditEligible,
 		)
 		return &DeliveryActionResult{
-			CampaignID:   campaignID,
+			CampaignID:   dealID,
 			Success:      false,
 			ViewsChecked: views,
 			MinViews:     campaign.MinViews,
 			Action:       ActionNone,
-			Message:      "Tweet content does not match expected campaign content",
+			Message:      fmt.Sprintf("Tweet was edited (edits remaining: %d/5)", obs.EditsRemaining),
 		}, nil
+	}
+
+	// Content matching: V2 stores contentHash (keccak256 of normalized text). Compare observed text hash to deal's ContentHash.
+	if obs.Text != "" {
+		normalized := normalizeText(obs.Text)
+		observedHash := crypto.Keccak256([]byte(normalized))
+		if len(observedHash) != 32 {
+			return &DeliveryActionResult{
+				CampaignID:   dealID,
+				Success:      false,
+				ViewsChecked: views,
+				MinViews:     campaign.MinViews,
+				Action:       ActionNone,
+				Message:      "Content hash computation failed",
+			}, nil
+		}
+		if !bytes.Equal(observedHash, campaign.ContentHash[:]) {
+			logger.Warn("Tweet content hash mismatch",
+				"dealID", dealID.String(),
+				"expectedHash", fmt.Sprintf("%x", campaign.ContentHash),
+				"observedHash", fmt.Sprintf("%x", observedHash),
+			)
+			return &DeliveryActionResult{
+				CampaignID:   dealID,
+				Success:      false,
+				ViewsChecked: views,
+				MinViews:     campaign.MinViews,
+				Action:       ActionNone,
+				Message:      "Tweet content does not match expected deal content",
+			}, nil
+		}
 	}
 
 	logger.Info("Fetched view count", "views", views, "minViews", campaign.MinViews.String(), "createdAtUnix", createdAtUnix)
@@ -411,7 +434,7 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 	viewsBig := big.NewInt(views)
 	if viewsBig.Cmp(campaign.MinViews) >= 0 {
 		// Criteria met! Prepare release report payload for Keystone forwarder
-		logger.Info("Criteria met, preparing release report", "campaignID", campaignID.String())
+		logger.Info("Criteria met, preparing release report", "dealID", dealID.String())
 
 		// Calculate postedDuration from actual tweet creation time
 		var postedDuration uint64 = 0
@@ -437,20 +460,20 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 			}
 		}
 
-		reportPayload, err := encodeReleaseReport(campaignID, viewsBig, postedDuration)
+		reportPayload, err := encodeReleaseReport(dealID, viewsBig, postedDuration)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode release report: %w", err)
 		}
 
-		logger.Info("Release report encoded", "campaignID", campaignID.String(), "payload", fmt.Sprintf("%x", reportPayload))
+		logger.Info("Release report encoded", "dealID", dealID.String(), "payload", fmt.Sprintf("%x", reportPayload))
 
 		if err := submitReport(runtime, escrowContract, reportPayload); err != nil {
 			return nil, fmt.Errorf("failed to submit release report: %w", err)
 		}
-		logger.Info("Release report submitted to forwarder", "campaignID", campaignID.String())
+		logger.Info("Release report submitted to forwarder", "dealID", dealID.String())
 
 		return &DeliveryActionResult{
-			CampaignID:   campaignID,
+			CampaignID:   dealID,
 			Success:      true,
 			ViewsChecked: views,
 			MinViews:     campaign.MinViews,
@@ -460,7 +483,7 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 	}
 
 	return &DeliveryActionResult{
-		CampaignID:   campaignID,
+		CampaignID:   dealID,
 		Success:      false,
 		ViewsChecked: views,
 		MinViews:     campaign.MinViews,
@@ -469,30 +492,26 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 	}, nil
 }
 
-// fetchXViewCount fetches the view count, text, and creation timestamp for a tweet from X API.
-// Returns: viewCount, text, createdAtUnix (Unix timestamp in seconds), error
-func fetchXViewCount(config *Config, runtime cre.Runtime, tweetURL string) (int64, string, int64, error) {
-
-	if config.XApiKey == "" {
-		return 0, "", 0, fmt.Errorf("twitter API key not configured")
+// fetchXViewCount fetches tweet data from X API v2 with consensus.
+func fetchXViewCount(config *Config, runtime cre.Runtime, tweetURL string) (*TweetObservation, error) {
+	if config.XApiBearerToken == "" {
+		return nil, fmt.Errorf("X API Bearer token not configured")
 	}
 
-	// Extract tweet ID from URL
 	tweetID, err := extractTweetID(tweetURL)
 	if err != nil {
-		return 0, "", 0, fmt.Errorf("failed to extract tweet ID: %w", err)
+		return nil, fmt.Errorf("failed to extract tweet ID: %w", err)
 	}
 
-	// Build twitterapi.io request
-	apiUrl := fmt.Sprintf("%s/twitter/tweets?tweet_ids=%s", strings.TrimRight(config.XApiBaseUrl, "/"), tweetID)
+	// X API v2 endpoint with required fields
+	apiUrl := fmt.Sprintf("https://api.x.com/2/tweets/%s?tweet.fields=public_metrics,created_at,text,edit_controls", tweetID)
 
-	// Create HTTP client and send request with consensus
 	client := &http.Client{}
 	req := &http.Request{
 		Url:    apiUrl,
 		Method: "GET",
 		Headers: map[string]string{
-			"X-API-Key": config.XApiKey,
+			"Authorization": fmt.Sprintf("Bearer %s", config.XApiBearerToken),
 		},
 	}
 
@@ -506,37 +525,39 @@ func fetchXViewCount(config *Config, runtime cre.Runtime, tweetURL string) (int6
 				return TweetObservation{}, fmt.Errorf("failed to get X API response: %w", err)
 			}
 
-			var apiResp TwitterAPIResponse
+			var apiResp XAPIv2Response
 			if err := json.Unmarshal(resp.Body, &apiResp); err != nil {
-				return TweetObservation{}, fmt.Errorf("failed to parse X API response: %w", err)
+				return TweetObservation{}, fmt.Errorf("failed to parse X API v2 response: %w", err)
 			}
 
-			if len(apiResp.Tweets) == 0 {
-				return TweetObservation{}, fmt.Errorf("tweet %s missing in response", tweetID)
+			if apiResp.Data.ID == "" {
+				return TweetObservation{}, fmt.Errorf("tweet %s not found in X API v2 response", tweetID)
 			}
 
-			tweet := apiResp.Tweets[0]
-			viewCount := tweet.ViewCount
-			tweetText := tweet.Text
-
-			// Parse createdAt timestamp (format: "Tue Dec 30 12:08:48 +0000 2025")
-			// Twitter uses RFC1123Z format: "Mon Jan 2 15:04:05 -0700 2006"
+			// Parse created_at (ISO 8601 / RFC3339)
 			createdAtUnix := int64(0)
-			if tweet.CreatedAt != "" {
-				parsedTime, err := time.Parse("Mon Jan 2 15:04:05 -0700 2006", tweet.CreatedAt)
+			if apiResp.Data.CreatedAt != "" {
+				parsedTime, err := time.Parse(time.RFC3339, apiResp.Data.CreatedAt)
 				if err != nil {
-					logger.Warn("Failed to parse createdAt timestamp", "createdAt", tweet.CreatedAt, "error", err)
-					// Continue with createdAtUnix = 0, which will be handled in duration calculation
+					logger.Warn("Failed to parse created_at", "created_at", apiResp.Data.CreatedAt, "error", err)
 				} else {
 					createdAtUnix = parsedTime.Unix()
 				}
 			}
 
-			logger.Info("Fetched tweet data from API", "tweetID", tweetID, "views", viewCount, "createdAt", tweet.CreatedAt, "createdAtUnix", createdAtUnix)
+			logger.Info("Fetched tweet data from X API v2",
+				"tweetID", tweetID,
+				"views", apiResp.Data.PublicMetrics.ImpressionCount,
+				"editsRemaining", apiResp.Data.EditControls.EditsRemaining,
+				"createdAtUnix", createdAtUnix,
+			)
+
 			return TweetObservation{
-				ViewCount:     viewCount,
-				Text:          tweetText,
-				CreatedAtUnix: createdAtUnix,
+				ViewCount:      apiResp.Data.PublicMetrics.ImpressionCount,
+				Text:           apiResp.Data.Text,
+				CreatedAtUnix:  createdAtUnix,
+				IsEditEligible: apiResp.Data.EditControls.IsEditEligible,
+				EditsRemaining: apiResp.Data.EditControls.EditsRemaining,
 			}, nil
 		},
 		cre.ConsensusAggregationFromTags[TweetObservation](),
@@ -544,10 +565,10 @@ func fetchXViewCount(config *Config, runtime cre.Runtime, tweetURL string) (int6
 
 	tweetData, err := tweetDataPromise.Await()
 	if err != nil {
-		return 0, "", 0, fmt.Errorf("failed to fetch tweet data with consensus: %w", err)
+		return nil, fmt.Errorf("failed to fetch tweet data with consensus: %w", err)
 	}
 
-	return tweetData.ViewCount, tweetData.Text, tweetData.CreatedAtUnix, nil
+	return &tweetData, nil
 }
 
 // encodeReleaseReport encodes a CreReport for releasing funds to influencer.
@@ -644,52 +665,41 @@ func encodeRefundData(campaignID *big.Int) ([]byte, error) {
 	return args.Pack(campaignID)
 }
 
-// extractTweetID extracts the tweet ID from a Twitter/X URL.
-func extractTweetID(url string) (string, error) {
-	// Simple extraction - in production, use proper URL parsing
-	// Format: https://twitter.com/username/status/1234567890
-	// or: https://x.com/username/status/1234567890
-	// We'll look for the last numeric segment after /status/
-
-	// This is a simplified version - you'd want to use url.Parse and proper regex
-	// For now, we'll assume the URL format is consistent
-	statusIndex := -1
-	if idx := findSubstring(url, "/status/"); idx != -1 {
-		statusIndex = idx + len("/status/")
-	} else if idx := findSubstring(url, "/statuses/"); idx != -1 {
-		statusIndex = idx + len("/statuses/")
-	} else {
-		return "", fmt.Errorf("invalid Twitter/X URL format: %s", url)
+// extractTweetID extracts the tweet ID from a Twitter/X URL using proper URL parsing.
+// Supports: https://twitter.com/user/status/123, https://x.com/user/status/123
+func extractTweetID(rawURL string) (string, error) {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return "", fmt.Errorf("invalid URL: %w", err)
 	}
 
-	// Extract the tweet ID (numeric)
-	tweetID := ""
-	for i := statusIndex; i < len(url); i++ {
-		if url[i] >= '0' && url[i] <= '9' {
-			tweetID += string(url[i])
-		} else if url[i] == '?' || url[i] == '#' || url[i] == '/' {
-			break
+	host := strings.ToLower(parsed.Hostname())
+	if host != "twitter.com" && host != "x.com" && host != "www.twitter.com" && host != "www.x.com" && host != "mobile.twitter.com" {
+		return "", fmt.Errorf("not a Twitter/X URL: %s", host)
+	}
+
+	// Path: /username/status/1234567890 or /username/statuses/1234567890
+	parts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+	for i, part := range parts {
+		if (part == "status" || part == "statuses") && i+1 < len(parts) {
+			tweetID := parts[i+1]
+			// Validate it's numeric
+			for _, c := range tweetID {
+				if c < '0' || c > '9' {
+					return "", fmt.Errorf("tweet ID contains non-numeric characters: %s", tweetID)
+				}
+			}
+			if tweetID == "" {
+				return "", fmt.Errorf("empty tweet ID in URL: %s", rawURL)
+			}
+			return tweetID, nil
 		}
 	}
 
-	if tweetID == "" {
-		return "", fmt.Errorf("could not extract tweet ID from URL: %s", url)
-	}
-
-	return tweetID, nil
+	return "", fmt.Errorf("could not find /status/ segment in URL: %s", rawURL)
 }
 
-// Helper function to find substring
-func findSubstring(s, substr string) int {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return i
-		}
-	}
-	return -1
-}
-
-func submitReport(runtime cre.Runtime, escrowContract *escrow.Escrow, payload []byte) error {
+func submitReport(runtime cre.Runtime, escrowContract *escrow_v2.EscrowV2, payload []byte) error {
 	reportRequest := &cre.ReportRequest{
 		EncodedPayload: payload,
 		EncoderName:    "evm",
@@ -708,20 +718,6 @@ func submitReport(runtime cre.Runtime, escrowContract *escrow.Escrow, payload []
 	}
 
 	return nil
-}
-
-func abiEncodeUint256Pair(a, b *big.Int) ([]byte, error) {
-	uintType, err := abi.NewType("uint256", "", nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create uint256 ABI type: %w", err)
-	}
-
-	args := abi.Arguments{
-		{Type: uintType},
-		{Type: uintType},
-	}
-
-	return args.Pack(a, b)
 }
 
 func main() {
