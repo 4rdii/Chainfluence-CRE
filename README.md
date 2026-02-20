@@ -1,49 +1,74 @@
-## Chainlink CRE Trustless Advertising Prototype
+# Chainfluence
 
-This repo ties together the on-chain escrow contracts and the Chainlink CRE workflow that automatically verifies social metrics and releases advertiser funds to influencers once campaign criteria are satisfied.
+> Trustless influencer marketing, powered by Chainlink.
 
-### Repository layout
+Chainfluence is a decentralized Twitter/X advertising marketplace. Advertisers create campaigns, influencers apply, and payments are held in a smart contract escrow — released automatically when a Chainlink CRE workflow verifies the post met the agreed criteria (views, content, duration).
+
+## Repository Layout
 
 | Path | Description |
-| ---- | ----------- |
-| `contracts/` | Foundry project containing `AdEscrow` plus deployment/interaction scripts. |
-| `my-project/` | CRE workflow (Go + WASM) that polls social metrics, validates content, and submits fulfillment reports through the Keystone forwarder. |
-| `install.sh` | Convenience script for installing toolchain prerequisites on fresh environments. |
+|------|-------------|
+| `contracts/` | Foundry project — `AdEscrowV2` escrow contract + deploy scripts |
+| `my-project/` | Chainlink CRE workflow (Go + WASM) — verifies tweets and submits fulfillment reports |
+| `backend/` | Hono API on Vercel Serverless — auth, campaigns, deals, channels, X OAuth |
+| `frontend/` | React app — wagmi v2, RainbowKit, full marketplace UI |
+| `docs/` | Extended documentation |
 
-### Quick start
+## How It Works
 
-1. **Install dependencies**
-   - Foundry (`foundryup`)
-   - Go 1.24+
-   - `cre` CLI (login + init)
+1. **Advertiser** creates a campaign (off-chain draft) and proposes or waits for influencer applications
+2. **Influencer** accepts a deal; advertiser funds it — locking MTK tokens in the escrow contract
+3. **Influencer** posts the agreed tweet and submits the URL
+4. **Backend** triggers the CRE workflow via HTTP with the deal ID and tweet URL
+5. **Workflow** fetches tweet data via X API (DON consensus), checks content hash, edit status, and view count
+6. **Contract** receives the signed fulfillment report — releases funds to influencer or refunds advertiser
 
-2. **Contracts**
-   ```bash
-   cd contracts
-   forge build
-   PRIVATE_KEY=<hex> forge script script/DeployEscrow.s.sol:DeployEscrow \
-     --rpc-url <rpc> --broadcast
-   ```
+## Deployed Contracts (Sepolia)
 
-3. **CRE workflow**
-   ```bash
-   cd my-project
-   cre workflow simulate my-workflow --target=staging-settings
-   # Once validated:
-   cre workflow deploy my-workflow --target=production-settings
-   ```
+| Contract | Address |
+|----------|---------|
+| AdEscrowV2 | `0x09431B4603E4Aa7511dD9341f2852fD031eA8C71` |
+| MTK Token | `0xeab216ca4381a5c19e751f1471c55b452db0758a` |
 
-### Secrets & environment variables
+## Quick Start
 
-- `contracts/.env` and `my-project/.env` contain **real** private keys/API keys and are already listed in their respective `.gitignore` files. Keep them out of source control and rotate any key that may have been exposed.
-- For CRE, store API keys with `cre secrets set <name> --target=<target>` rather than embedding them in configs.
-- Never commit `.env`, `secrets.yaml` values, or broadcast logs that may leak private data.
+**Prerequisites:** Go 1.24+, Foundry (`foundryup`), Node.js 18+, `cre` CLI
 
-### TODO
+```bash
+# Contracts
+cd contracts && forge build
 
-- [ ] **Enforce post duration in workflow** — `main.go` calculates `postedDuration` from the tweet's `created_at` and has `campaign.CampaignDuration` from the contract, but never compares them before releasing funds. Add a check: if `postedDuration < campaign.CampaignDuration`, return `ActionNone` instead of releasing.
-- [ ] **Channel owner check on propose** — `POST /api/channels/:id/propose` in the backend does not verify that the requesting user owns the channel being proposed to. Add a guard so advertisers cannot spoof proposals as if they came from a different channel.
+# Backend
+cd backend && npm install && npm run dev
 
-### License
+# Frontend
+cd frontend && npm install && npm run dev
 
-This project is released under the MIT License (see [`LICENSE`](LICENSE)). Use at your own risk; audit/modify before deploying to production networks.
+# CRE workflow (simulate)
+cd my-project
+cre workflow simulate my-workflow \
+  --target=staging-settings \
+  --input='{"campaignId":"1","tweetUrl":"https://x.com/user/status/123"}'
+```
+
+## Documentation
+
+- [**Contracts**](docs/contracts.md) — escrow architecture, deal lifecycle, deployment, ABI reference
+- [**CRE Workflow**](docs/workflow.md) — verification logic, simulation, deployment, HTTP trigger
+- [**Development**](docs/development.md) — setup, environment variables, coding conventions
+- [**Design System**](docs/design.md) — colors, components, layout, screen specifications
+
+## TODO
+
+- [ ] **Enforce post duration in workflow** — `main.go` calculates `postedDuration` but never compares it against `campaign.CampaignDuration` before releasing. Add: `if postedDuration < campaign.CampaignDuration { return ActionNone }`.
+- [ ] **Channel owner check on propose** — `POST /api/channels/:id/propose` does not verify the requesting user owns that channel. Add an ownership guard to prevent spoofed proposals.
+
+## Secrets & Security
+
+- Never commit `.env` files — all subdirectories have `.gitignore` entries covering them
+- CRE secrets are managed via `cre secrets set <name> --target=<target>`; `secrets.yaml` maps names only
+- Rotate keys and rebuild WASM after any contract redeploy or credential rotation
+
+## License
+
+MIT — see [`LICENSE`](LICENSE). Use at your own risk; audit before deploying to production networks.
