@@ -112,7 +112,6 @@ type DeliveryActionResult struct {
 // HTTPTriggerInput defines the payload structure for HTTP triggers.
 type HTTPTriggerInput struct {
 	CampaignID string `json:"campaignId"`
-	TweetURL   string `json:"tweetUrl,omitempty"`  // Backend provides tweet URL
 	ChainName  string `json:"chainName,omitempty"` // Target chain (defaults to first EVM config)
 }
 
@@ -188,7 +187,6 @@ func onHTTPTrigger(config *Config, runtime cre.Runtime, trigger *http.Payload) (
 
 	logger.Info("HTTP trigger received",
 		"campaignID", input.CampaignID,
-		"tweetURL", input.TweetURL,
 		"chainName", input.ChainName,
 		"triggeredBy", triggeredBy,
 	)
@@ -218,17 +216,12 @@ func onHTTPTrigger(config *Config, runtime cre.Runtime, trigger *http.Payload) (
 		return nil, fmt.Errorf("failed to create escrow contract instance: %w", err)
 	}
 
-	if input.TweetURL == "" {
-		return nil, fmt.Errorf("tweetUrl is required in HTTP trigger payload")
-	}
-
-	// Process the specified campaign with tweet URL from trigger
-	return processCampaignWithTweetURL(config, runtime, escrowContract, campaignID, input.TweetURL)
+	return processCampaign(config, runtime, escrowContract, campaignID)
 }
 
-// processCampaignWithTweetURL checks a deal's criteria and either releases funds or refunds.
-// tweetURLOverride allows the HTTP trigger to provide the tweet URL directly.
-func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowContract *escrow_v2.EscrowV2, dealID *big.Int, tweetURLOverride string) (*DeliveryActionResult, error) {
+// processCampaign checks a deal's criteria and either releases funds or refunds.
+// Tweet URL is read directly from the contract (set by the influencer via acceptDeal).
+func processCampaign(config *Config, runtime cre.Runtime, escrowContract *escrow_v2.EscrowV2, dealID *big.Int) (*DeliveryActionResult, error) {
 	logger := runtime.Logger()
 	logger.Info("Processing deal", "dealID", dealID.String())
 
@@ -349,7 +342,8 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 		}, nil
 	}
 
-	tweetURL := tweetURLOverride
+	// Read tweet URL from contract (set by influencer when calling acceptDeal)
+	tweetURL := campaign.TweetUrl
 	if tweetURL == "" {
 		return &DeliveryActionResult{
 			CampaignID:   dealID,
@@ -357,11 +351,11 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 			ViewsChecked: 0,
 			MinViews:     campaign.MinViews,
 			Action:       ActionNone,
-			Message:      "No tweet URL provided",
+			Message:      "No tweet URL on-chain yet — influencer has not accepted the deal",
 		}, nil
 	}
 
-	logger.Info("Using tweet URL", "url", tweetURL)
+	logger.Info("Using tweet URL from contract", "url", tweetURL)
 
 	// Fetch tweet data from X API v2 (with consensus)
 	obs, err := fetchXViewCount(config, runtime, tweetURL)
@@ -397,7 +391,7 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 		}, nil
 	}
 
-	// Content matching: V2 stores contentHash (keccak256 of normalized text). Compare observed text hash to deal's ContentHash.
+	// Content matching: compare keccak256(normalizedText) to on-chain contentHash
 	if obs.Text != "" {
 		normalized := normalizeText(obs.Text)
 		observedHash := crypto.Keccak256([]byte(normalized))
@@ -428,38 +422,38 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 		}
 	}
 
-	logger.Info("Fetched view count", "views", views, "minViews", campaign.MinViews.String(), "createdAtUnix", createdAtUnix)
+	// Uptime check: tweet must have been live for at least campaignDuration seconds
+	var postedDuration uint64
+	if createdAtUnix > 0 {
+		nowUnix := time.Now().Unix()
+		elapsed := nowUnix - createdAtUnix
+		if elapsed > 0 {
+			postedDuration = uint64(elapsed)
+		}
+		logger.Info("Uptime check",
+			"postedDuration", postedDuration,
+			"required", campaign.CampaignDuration,
+			"createdAtUnix", createdAtUnix,
+		)
+		if campaign.CampaignDuration > 0 && postedDuration < uint64(campaign.CampaignDuration) {
+			return &DeliveryActionResult{
+				CampaignID:   dealID,
+				Success:      false,
+				ViewsChecked: views,
+				MinViews:     campaign.MinViews,
+				Action:       ActionNone,
+				Message:      fmt.Sprintf("Tweet has not been live long enough: %ds posted, %ds required", postedDuration, campaign.CampaignDuration),
+			}, nil
+		}
+	} else {
+		logger.Warn("Could not determine tweet creation time — skipping uptime check")
+	}
 
-	// Check if minimum views are met
+	logger.Info("Checks passed", "views", views, "minViews", campaign.MinViews.String(), "postedDuration", postedDuration)
+
+	// View count check
 	viewsBig := big.NewInt(views)
 	if viewsBig.Cmp(campaign.MinViews) >= 0 {
-		// Criteria met! Prepare release report payload for Keystone forwarder
-		logger.Info("Criteria met, preparing release report", "dealID", dealID.String())
-
-		// Calculate postedDuration from actual tweet creation time
-		var postedDuration uint64 = 0
-		if createdAtUnix > 0 {
-			// Calculate duration: current time - tweet creation time
-			currentTime := time.Now().Unix()
-			durationSeconds := currentTime - createdAtUnix
-			if durationSeconds < 0 {
-				// This shouldn't happen, but handle edge case
-				logger.Warn("Tweet creation time is in the future", "createdAtUnix", createdAtUnix, "currentTime", currentTime)
-				postedDuration = 0
-			} else {
-				postedDuration = uint64(durationSeconds)
-			}
-			logger.Info("Calculated posting duration", "postedDuration", postedDuration, "createdAtUnix", createdAtUnix, "currentTime", currentTime)
-		} else {
-			// If createdAt parsing failed, fall back to old behavior
-			// Only set duration if campaign requires it (but this will fail validation)
-			if campaign.CampaignDuration > 0 {
-				logger.Warn("Cannot calculate duration (createdAt parsing failed), but campaign requires duration", "campaignDuration", campaign.CampaignDuration)
-				// Set to 0, which will fail the contract validation if duration is required
-				postedDuration = 0
-			}
-		}
-
 		reportPayload, err := encodeReleaseReport(dealID, viewsBig, postedDuration)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode release report: %w", err)
@@ -478,7 +472,7 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 			ViewsChecked: views,
 			MinViews:     campaign.MinViews,
 			Action:       ActionRelease,
-			Message:      "Criteria met, funds released to influencer",
+			Message:      "All criteria met, funds released to influencer",
 		}, nil
 	}
 
@@ -488,7 +482,7 @@ func processCampaignWithTweetURL(config *Config, runtime cre.Runtime, escrowCont
 		ViewsChecked: views,
 		MinViews:     campaign.MinViews,
 		Action:       ActionNone,
-		Message:      fmt.Sprintf("Criteria not met: %d < %s views", views, campaign.MinViews.String()),
+		Message:      fmt.Sprintf("Not enough views yet: %d < %s", views, campaign.MinViews.String()),
 	}, nil
 }
 

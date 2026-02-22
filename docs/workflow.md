@@ -107,7 +107,7 @@ The backend calls the CRE HTTP gateway with a signed JWT. The `http-trigger/` he
   "xApiBearerToken": "",
   "evms": [
     {
-      "escrowAddress": "0x09431B4603E4Aa7511dD9341f2852fD031eA8C71",
+      "escrowAddress": "0xDdaD4bfB7338E6b7d5B818Bb721E2B65e3bA2e71",
       "chainName": "ethereum-testnet-sepolia"
     }
   ],

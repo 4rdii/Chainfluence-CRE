@@ -268,16 +268,17 @@ export function DealView() {
         address: ESCROW_ADDRESS,
         abi: escrowAbi,
         functionName: 'deposit',
-        args: [
+        args: [{
           dealId,
-          MTK_TOKEN.address,
-          influencerAddress,
+          token: MTK_TOKEN.address,
+          influencer: influencerAddress,
           amount,
           contentHash,
-          BigInt(campaign.minViews || 0),
-          deadlineUnix,
-          durationSeconds,
-        ],
+          minViews: BigInt(campaign.minViews || 0),
+          expiryDeadline: deadlineUnix,
+          campaignDuration: durationSeconds,
+          channelName: channel?.platformHandle || '',
+        }],
       });
 
       // Wait for receipt
@@ -316,8 +317,18 @@ export function DealView() {
   };
 
   const handleSubmitTweet = async () => {
-    if (!tweetUrl) return;
+    if (!tweetUrl || !deal?.onchainCampaignId) return;
     try {
+      // 1. Call acceptDeal(dealId, tweetUrl) on-chain — stores tweet URL in contract and accepts the deal
+      const txHash = await writeContractAsync({
+        address: ESCROW_ADDRESS,
+        abi: escrowAbi,
+        functionName: 'acceptDeal',
+        args: [BigInt(deal.onchainCampaignId), tweetUrl],
+      });
+      await waitForTransactionReceipt(wagmiConfig, { hash: txHash });
+
+      // 2. Notify backend (triggers CRE workflow)
       await apiClient(`/api/deals/${id}/post`, {
         method: 'POST',
         body: JSON.stringify({ postUrl: tweetUrl }),

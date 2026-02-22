@@ -8,7 +8,7 @@ export const wagmiConfig = getDefaultConfig({
 })
 
 // Single source of truth — redeploy picks this up; no env override so host env can't stick to old contract
-export const ESCROW_ADDRESS = '0x09431B4603E4Aa7511dD9341f2852fD031eA8C71' as `0x${string}`
+export const ESCROW_ADDRESS = '0xDdaD4bfB7338E6b7d5B818Bb721E2B65e3bA2e71' as `0x${string}`
 
 export const CHAIN_ID = parseInt(import.meta.env.VITE_CHAIN_ID || '11155111')
 

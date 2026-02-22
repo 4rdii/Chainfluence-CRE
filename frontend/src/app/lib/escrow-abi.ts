@@ -1,25 +1,37 @@
 // AdEscrowV2: dealId is backend deal.id, passed in when depositing (no counter)
 export const escrowAbi = [
   {
+    // deposit(DepositParams calldata p) — struct encoded as tuple
     type: 'function',
     name: 'deposit',
     inputs: [
-      { name: 'dealId', type: 'uint256' },
-      { name: 'token', type: 'address' },
-      { name: 'influencer', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-      { name: 'contentHash', type: 'bytes32' },
-      { name: 'minViews', type: 'uint256' },
-      { name: 'expiryDeadline', type: 'uint256' },
-      { name: 'campaignDuration', type: 'uint64' },
+      {
+        name: 'p',
+        type: 'tuple',
+        components: [
+          { name: 'dealId', type: 'uint256' },
+          { name: 'token', type: 'address' },
+          { name: 'influencer', type: 'address' },
+          { name: 'amount', type: 'uint256' },
+          { name: 'contentHash', type: 'bytes32' },
+          { name: 'minViews', type: 'uint256' },
+          { name: 'expiryDeadline', type: 'uint256' },
+          { name: 'campaignDuration', type: 'uint64' },
+          { name: 'channelName', type: 'string' },
+        ],
+      },
     ],
     outputs: [],
     stateMutability: 'payable',
   },
   {
+    // acceptDeal(uint256 dealId, string tweetUrl) — influencer accepts and submits tweet
     type: 'function',
     name: 'acceptDeal',
-    inputs: [{ name: 'dealId', type: 'uint256' }],
+    inputs: [
+      { name: 'dealId', type: 'uint256' },
+      { name: 'tweetUrl', type: 'string' },
+    ],
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -57,6 +69,8 @@ export const escrowAbi = [
           { name: 'state', type: 'uint8' },
           { name: 'platformFee', type: 'uint256' },
           { name: 'influencerAccepted', type: 'bool' },
+          { name: 'channelName', type: 'string' },
+          { name: 'tweetUrl', type: 'string' },
         ],
       },
     ],

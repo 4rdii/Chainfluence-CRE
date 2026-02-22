@@ -1,7 +1,7 @@
 import { createPublicClient, http, type Address } from 'viem'
 import { sepolia } from 'viem/chains'
 
-const ESCROW_ADDRESS = (process.env.ESCROW_ADDRESS || '0x09431B4603E4Aa7511dD9341f2852fD031eA8C71') as Address
+const ESCROW_ADDRESS = (process.env.ESCROW_ADDRESS || '0xDdaD4bfB7338E6b7d5B818Bb721E2B65e3bA2e71') as Address
 // Default: public Sepolia RPC (no API key). Override with RPC_URL in env (e.g. Vercel project settings).
 const RPC_URL = process.env.RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com'
 

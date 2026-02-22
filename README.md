@@ -27,7 +27,7 @@ Chainfluence is a decentralized Twitter/X advertising marketplace. Advertisers c
 
 | Contract | Address |
 |----------|---------|
-| AdEscrowV2 | `0x09431B4603E4Aa7511dD9341f2852fD031eA8C71` |
+| AdEscrowV2 | `0xDdaD4bfB7338E6b7d5B818Bb721E2B65e3bA2e71` |
 | MTK Token | `0xeab216ca4381a5c19e751f1471c55b452db0758a` |
 
 ## Quick Start
