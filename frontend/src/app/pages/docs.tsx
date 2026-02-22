@@ -113,6 +113,167 @@ function DealStage({ label, color }: { label: string; color: string }) {
   );
 }
 
+function FlowChart() {
+  const dealSteps = [
+    { actor: 'Advertiser', color: '#3B82F6', step: 'Connect wallet + sign SIWE message → account created in backend' },
+    { actor: 'Advertiser', color: '#3B82F6', step: 'Create campaign → stored as draft in Neon DB (no on-chain tx)' },
+    { actor: 'Influencer', color: '#7C3AED', step: 'Browse Marketplace → view channels and active campaigns' },
+    { actor: 'Advertiser', color: '#3B82F6', step: 'Propose deal directly to a channel  OR  Influencer applies to campaign' },
+    { actor: 'Influencer', color: '#7C3AED', step: 'Accept deal proposal → backend updates deal status to accepted' },
+    { actor: 'Advertiser', color: '#3B82F6', step: 'Fund deal → ERC-20 approve + deposit to Escrow Contract (2 wallet txs)' },
+    { actor: 'Influencer', color: '#7C3AED', step: 'Post agreed tweet → submit URL to backend' },
+    { actor: 'Backend',    color: '#10B981', step: 'Trigger CRE Workflow via HTTP with campaignId + tweetUrl' },
+    { actor: 'Workflow',   color: '#9333EA', step: 'Read deal from Escrow Contract via getDeal()' },
+    { actor: 'Workflow',   color: '#9333EA', step: 'Fetch tweet from X API v2 — check edit flag, content hash, view count' },
+    { actor: 'Workflow',   color: '#9333EA', step: 'Submit signed fulfillment report to Keystone Forwarder' },
+    { actor: 'Contract',   color: '#F59E0B', step: 'onReport() verifies report → release MTK to influencer  OR  refund advertiser' },
+  ];
+
+  return (
+    <div className="space-y-8">
+      {/* ── Architecture SVG ── */}
+      <div>
+        <div className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Module Architecture</div>
+        <div className="bg-elevated rounded-xl p-4 overflow-x-auto">
+          <svg viewBox="0 0 820 450" className="w-full min-w-[620px]">
+            <defs>
+              {/* arrow markers */}
+              <marker id="av" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#7C3AED" /></marker>
+              <marker id="ab" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#3B82F6" /></marker>
+              <marker id="ag" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#10B981" /></marker>
+              <marker id="aa" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#F59E0B" /></marker>
+              <marker id="as" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#64748B" /></marker>
+            </defs>
+
+            {/* ── ARROWS (drawn before boxes so boxes render on top) ── */}
+
+            {/* SIWE: Advertiser Wallet top-right → Frontend bottom-left (dashed gray, diagonal) */}
+            <line x1="155" y1="206" x2="240" y2="68" stroke="#64748B" strokeWidth="1.5" strokeDasharray="5 3" markerEnd="url(#as)" />
+            <text x="163" y="148" fill="#64748B" fontSize="10">SIWE auth</text>
+
+            {/* Frontend → Backend: REST+JWT (dashed blue) */}
+            <line x1="380" y1="52" x2="450" y2="52" stroke="#3B82F6" strokeWidth="1.5" strokeDasharray="5 3" markerEnd="url(#ab)" />
+            <text x="415" y="45" fill="#64748B" fontSize="10" textAnchor="middle">REST + JWT</text>
+
+            {/* Backend → Neon DB (dashed green) */}
+            <line x1="590" y1="52" x2="660" y2="52" stroke="#10B981" strokeWidth="1.5" strokeDasharray="5 3" markerEnd="url(#ag)" />
+            <text x="625" y="45" fill="#64748B" fontSize="10" textAnchor="middle">Drizzle ORM</text>
+
+            {/* Backend → CRE Workflow: HTTP trigger (solid violet) */}
+            <line x1="520" y1="74" x2="520" y2="195" stroke="#7C3AED" strokeWidth="2" markerEnd="url(#av)" />
+            <text x="528" y="140" fill="#64748B" fontSize="10">HTTP trigger</text>
+
+            {/* CRE Workflow → X API (solid blue) */}
+            <line x1="590" y1="217" x2="660" y2="217" stroke="#3B82F6" strokeWidth="2" markerEnd="url(#ab)" />
+            <text x="625" y="211" fill="#64748B" fontSize="10" textAnchor="middle">fetch tweet</text>
+
+            {/* Advertiser Wallet → Escrow: approve+deposit (solid amber, vertical) */}
+            <line x1="85" y1="239" x2="85" y2="370" stroke="#F59E0B" strokeWidth="2" markerEnd="url(#aa)" />
+            <text x="93" y="300" fill="#64748B" fontSize="9">approve +</text>
+            <text x="93" y="312" fill="#64748B" fontSize="9">deposit</text>
+
+            {/* Escrow → Influencer Wallet: release MTK (solid green, arc above Keystone) */}
+            <path d="M 155 392 C 155 345 450 345 450 392" stroke="#10B981" strokeWidth="2" fill="none" markerEnd="url(#ag)" />
+            <text x="302" y="338" fill="#64748B" fontSize="10" textAnchor="middle">release MTK</text>
+
+            {/* CRE → Keystone: submit report (solid violet, diagonal) */}
+            <path d="M 470 239 L 365 370" stroke="#7C3AED" strokeWidth="2" fill="none" markerEnd="url(#av)" />
+            <text transform="translate(422,308) rotate(-44)" fill="#64748B" fontSize="10" textAnchor="middle">submit report</text>
+
+            {/* Keystone → Escrow: onReport() (solid amber, horizontal left) */}
+            <line x1="225" y1="392" x2="155" y2="392" stroke="#F59E0B" strokeWidth="2" markerEnd="url(#aa)" />
+            <text x="190" y="385" fill="#64748B" fontSize="10" textAnchor="middle">onReport()</text>
+
+            {/* CRE → Escrow: getDeal() (dashed gray, curved) */}
+            <path d="M 450 217 C 265 217 140 290 140 370" stroke="#64748B" strokeWidth="1.5" fill="none" strokeDasharray="5 3" markerEnd="url(#as)" />
+            <text x="278" y="258" fill="#64748B" fontSize="10" textAnchor="middle">getDeal()</text>
+
+            {/* ── MODULE BOXES ── */}
+
+            {/* Advertiser Wallet */}
+            <rect x="15" y="195" width="140" height="44" rx="8" fill="#0c1827" stroke="#3B82F6" strokeWidth="1.5" />
+            <text x="85" y="213" fill="#93C5FD" fontSize="11" fontWeight="600" textAnchor="middle">Advertiser Wallet</text>
+            <text x="85" y="229" fill="#3B82F6" fontSize="10" textAnchor="middle">(MetaMask)</text>
+
+            {/* Frontend */}
+            <rect x="240" y="30" width="140" height="44" rx="8" fill="#0c1827" stroke="#3B82F6" strokeWidth="1.5" />
+            <text x="310" y="49" fill="#93C5FD" fontSize="12" fontWeight="600" textAnchor="middle">Frontend</text>
+            <text x="310" y="65" fill="#3B82F6" fontSize="10" textAnchor="middle">(React + wagmi)</text>
+
+            {/* Backend */}
+            <rect x="450" y="30" width="140" height="44" rx="8" fill="#0c1827" stroke="#3B82F6" strokeWidth="1.5" />
+            <text x="520" y="49" fill="#93C5FD" fontSize="12" fontWeight="600" textAnchor="middle">Backend API</text>
+            <text x="520" y="65" fill="#3B82F6" fontSize="10" textAnchor="middle">(Hono / Vercel)</text>
+
+            {/* Neon DB */}
+            <rect x="660" y="30" width="140" height="44" rx="8" fill="#071811" stroke="#10B981" strokeWidth="1.5" />
+            <text x="730" y="49" fill="#6EE7B7" fontSize="12" fontWeight="600" textAnchor="middle">Neon DB</text>
+            <text x="730" y="65" fill="#10B981" fontSize="10" textAnchor="middle">(Postgres)</text>
+
+            {/* CRE Workflow */}
+            <rect x="450" y="195" width="140" height="44" rx="8" fill="#12081f" stroke="#7C3AED" strokeWidth="1.5" />
+            <text x="520" y="214" fill="#C4B5FD" fontSize="12" fontWeight="600" textAnchor="middle">CRE Workflow</text>
+            <text x="520" y="230" fill="#7C3AED" fontSize="10" textAnchor="middle">(Go / WASM)</text>
+
+            {/* X API v2 */}
+            <rect x="660" y="195" width="140" height="44" rx="8" fill="#071320" stroke="#38BDF8" strokeWidth="1.5" />
+            <text x="730" y="214" fill="#7DD3FC" fontSize="12" fontWeight="600" textAnchor="middle">X API v2</text>
+            <text x="730" y="230" fill="#38BDF8" fontSize="10" textAnchor="middle">(tweet data)</text>
+
+            {/* Escrow Contract */}
+            <rect x="15" y="370" width="140" height="44" rx="8" fill="#1c1003" stroke="#F59E0B" strokeWidth="1.5" />
+            <text x="85" y="389" fill="#FCD34D" fontSize="12" fontWeight="600" textAnchor="middle">Escrow Contract</text>
+            <text x="85" y="405" fill="#F59E0B" fontSize="10" textAnchor="middle">(Sepolia)</text>
+
+            {/* Keystone Forwarder */}
+            <rect x="225" y="370" width="140" height="44" rx="8" fill="#16082a" stroke="#9333EA" strokeWidth="1.5" />
+            <text x="295" y="389" fill="#D8B4FE" fontSize="12" fontWeight="600" textAnchor="middle">Keystone</text>
+            <text x="295" y="405" fill="#9333EA" fontSize="10" textAnchor="middle">Forwarder</text>
+
+            {/* Influencer Wallet */}
+            <rect x="450" y="370" width="140" height="44" rx="8" fill="#071811" stroke="#10B981" strokeWidth="1.5" />
+            <text x="520" y="389" fill="#6EE7B7" fontSize="11" fontWeight="600" textAnchor="middle">Influencer Wallet</text>
+            <text x="520" y="405" fill="#10B981" fontSize="10" textAnchor="middle">(Channel Owner)</text>
+          </svg>
+        </div>
+
+        {/* Legend */}
+        <div className="flex flex-wrap gap-5 mt-3 text-xs text-text-muted">
+          <span className="flex items-center gap-2"><span className="inline-block w-6 border-t-2 border-accent-violet" /> main deal flow</span>
+          <span className="flex items-center gap-2"><span className="inline-block w-6 border-t-2 border-text-muted border-dashed" /> data / read calls</span>
+        </div>
+      </div>
+
+      {/* ── Deal Lifecycle Steps ── */}
+      <div>
+        <div className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Deal Lifecycle — Step by Step</div>
+        <div className="relative">
+          {/* vertical guide line */}
+          <div className="absolute left-[68px] top-4 bottom-4 w-px bg-border-color" />
+          <div className="space-y-3">
+            {dealSteps.map((s, i) => (
+              <div key={i} className="flex items-start gap-4">
+                {/* step number bubble */}
+                <div className="flex-shrink-0 w-[68px] flex flex-col items-center gap-1 pt-0.5">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold z-10"
+                    style={{ backgroundColor: s.color }}>
+                    {i + 1}
+                  </div>
+                </div>
+                {/* content */}
+                <div className="flex-1 bg-elevated rounded-lg px-3 py-2.5">
+                  <span className="text-xs font-semibold mr-2" style={{ color: s.color }}>{s.actor}</span>
+                  <span className="text-xs text-text-secondary">{s.step}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Docs() {
   return (
     <div className="max-w-4xl mx-auto space-y-10 pb-16">
@@ -172,6 +333,12 @@ export function Docs() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* ── FLOWCHART ── */}
+      <section className="bg-card border border-border-color rounded-xl p-6 space-y-5">
+        <SectionHeader icon={ArrowRight} title="System Architecture" subtitle="How each module interacts and the deal flow end-to-end" />
+        <FlowChart />
       </section>
 
       {/* ── GETTING STARTED ── */}
