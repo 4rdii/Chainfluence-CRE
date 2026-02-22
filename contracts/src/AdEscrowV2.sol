@@ -41,6 +41,20 @@ contract AdEscrowV2 is IReceiverTemplate, ReentrancyGuard {
         CampaignState state;
         uint256 platformFee;       // fee amount (calculated at deposit)
         bool    influencerAccepted;
+        string  channelName;       // influencer's X handle — set at deposit time
+        string  tweetUrl;          // posted tweet URL — set when influencer accepts
+    }
+
+    struct DepositParams {
+        uint256 dealId;
+        address token;
+        address influencer;
+        uint256 amount;
+        bytes32 contentHash;
+        uint256 minViews;
+        uint256 expiryDeadline;
+        uint64  campaignDuration;
+        string  channelName;
     }
 
     // CRE report actions
@@ -68,9 +82,10 @@ contract AdEscrowV2 is IReceiverTemplate, ReentrancyGuard {
         address indexed influencer,
         address token,
         uint256 amount,
-        bytes32 contentHash
+        bytes32 contentHash,
+        string  channelName
     );
-    event DealAccepted(uint256 indexed dealId, address indexed influencer);
+    event DealAccepted(uint256 indexed dealId, address indexed influencer, string tweetUrl);
     event DealCancelled(uint256 indexed dealId, address indexed advertiser);
     event FundsReleased(
         uint256 indexed dealId,
@@ -128,49 +143,42 @@ contract AdEscrowV2 is IReceiverTemplate, ReentrancyGuard {
 
     /// @notice Advertiser deposits funds for a deal (dealId must match backend deal.id)
     /// @dev For ERC20: caller must approve this contract first. For ETH: send msg.value.
-    function deposit(
-        uint256 dealId,
-        address token,
-        address influencer,
-        uint256 amount,
-        bytes32 contentHash,
-        uint256 minViews,
-        uint256 expiryDeadline,
-        uint64  campaignDuration
-    ) external payable nonReentrant {
-        if (!whitelistedTokens[token]) revert TokenNotWhitelisted();
-        if (amount == 0) revert InvalidAmount();
-        if (expiryDeadline <= block.timestamp) revert CampaignExpired();
-        if (deals[dealId].advertiser != address(0)) revert DealAlreadyExists();
+    function deposit(DepositParams calldata p) external payable nonReentrant {
+        if (!whitelistedTokens[p.token]) revert TokenNotWhitelisted();
+        if (p.amount == 0) revert InvalidAmount();
+        if (p.expiryDeadline <= block.timestamp) revert CampaignExpired();
+        if (deals[p.dealId].advertiser != address(0)) revert DealAlreadyExists();
 
-        uint256 fee = (amount * platformFeeBps) / 10000;
+        uint256 fee = (p.amount * platformFeeBps) / 10000;
 
-        if (token == NATIVE_ETH_ADDRESS) {
-            if (msg.value != amount) revert InvalidAmount();
+        if (p.token == NATIVE_ETH_ADDRESS) {
+            if (msg.value != p.amount) revert InvalidAmount();
         } else {
             require(msg.value == 0, "Cannot send ETH with ERC20 deposit");
-            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+            IERC20(p.token).safeTransferFrom(msg.sender, address(this), p.amount);
         }
 
-        deals[dealId] = Campaign({
+        deals[p.dealId] = Campaign({
             advertiser: msg.sender,
-            influencer: influencer,
-            token: token,
-            amount: amount,
-            contentHash: contentHash,
-            minViews: minViews,
-            campaignDuration: campaignDuration,
-            deadline: expiryDeadline,
+            influencer: p.influencer,
+            token: p.token,
+            amount: p.amount,
+            contentHash: p.contentHash,
+            minViews: p.minViews,
+            campaignDuration: p.campaignDuration,
+            deadline: p.expiryDeadline,
             state: CampaignState.Funded,
             platformFee: fee,
-            influencerAccepted: false
+            influencerAccepted: false,
+            channelName: p.channelName,
+            tweetUrl: ""
         });
 
-        emit DealCreated(dealId, msg.sender, influencer, token, amount, contentHash);
+        emit DealCreated(p.dealId, msg.sender, p.influencer, p.token, p.amount, p.contentHash, p.channelName);
     }
 
-    /// @notice Influencer accepts a funded deal
-    function acceptDeal(uint256 dealId) external {
+    /// @notice Influencer accepts a funded deal and provides the posted tweet URL
+    function acceptDeal(uint256 dealId, string calldata tweetUrl) external {
         Campaign storage c = deals[dealId];
         if (c.state != CampaignState.Funded) revert InvalidState(c.state, CampaignState.Funded);
         if (msg.sender != c.influencer) revert NotInfluencer();
@@ -178,7 +186,8 @@ contract AdEscrowV2 is IReceiverTemplate, ReentrancyGuard {
 
         c.state = CampaignState.Accepted;
         c.influencerAccepted = true;
-        emit DealAccepted(dealId, msg.sender);
+        c.tweetUrl = tweetUrl;
+        emit DealAccepted(dealId, msg.sender, tweetUrl);
     }
 
     /// @notice Advertiser cancels before influencer accepts

@@ -40,6 +40,21 @@ contract DeployEscrowV2 is Script {
             console.log("  Token", i, ":", whitelistedTokens[i]);
         }
 
+        // ── Post-deployment configuration ───────────────────────────────
+        address mtkToken     = 0xEaB216CA4381a5c19E751f1471c55B452DB0758a;
+        address creAuthor    = 0xFF3f9d0E76D30577D7A0bD35E14259a76078230e;
+        address creForwarder = 0xF8344CFd5c43616a4366C34E3EEE75af79a74482;
+
+        escrow.whitelistToken(mtkToken);
+        escrow.setExpectedWorkflowName("ad-escrow-workflow-production");
+        escrow.setExpectedAuthor(creAuthor);
+        escrow.setForwarderAddress(creForwarder);
+
+        console.log("MTK token whitelisted:", mtkToken);
+        console.log("Expected workflow name: ad-escrow-workflow-production");
+        console.log("Expected author:", creAuthor);
+        console.log("CRE forwarder set:", creForwarder);
+
         vm.stopBroadcast();
 
         return escrow;

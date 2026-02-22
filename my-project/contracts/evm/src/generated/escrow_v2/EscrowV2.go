@@ -51,7 +51,7 @@ var (
 )
 
 var EscrowV2MetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"constructor\",\"inputs\":[{\"name\":\"_forwarder\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_whitelistedTokens\",\"type\":\"address[]\",\"internalType\":\"address[]\"},{\"name\":\"_platformFeeBps\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_feeRecipient\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"NATIVE_ETH_ADDRESS\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"MAX_FEE_BPS\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"deals\",\"inputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"advertiser\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"influencer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"token\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"contentHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"minViews\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"campaignDuration\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"deadline\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"state\",\"type\":\"uint8\",\"internalType\":\"enumAdEscrowV2.CampaignState\"},{\"name\":\"platformFee\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"influencerAccepted\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"platformFeeBps\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"feeRecipient\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"deposit\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"token\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"influencer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"contentHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"minViews\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"expiryDeadline\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"campaignDuration\",\"type\":\"uint64\",\"internalType\":\"uint64\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"acceptDeal\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"cancelDeal\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"raiseDispute\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"resolveDispute\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"releaseToInfluencer\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"onReport\",\"inputs\":[{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"report\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"claimExpired\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"getDeal\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structAdEscrowV2.Campaign\",\"components\":[{\"name\":\"advertiser\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"influencer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"token\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"contentHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"minViews\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"campaignDuration\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"deadline\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"state\",\"type\":\"uint8\",\"internalType\":\"enumAdEscrowV2.CampaignState\"},{\"name\":\"platformFee\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"influencerAccepted\",\"type\":\"bool\",\"internalType\":\"bool\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"isExpired\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"setPlatformFeeBps\",\"inputs\":[{\"name\":\"_feeBps\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setFeeRecipient\",\"inputs\":[{\"name\":\"_recipient\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"whitelistToken\",\"inputs\":[{\"name\":\"token\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"removeTokenFromWhitelist\",\"inputs\":[{\"name\":\"token\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"whitelistedTokens\",\"inputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"forwarderAddress\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"expectedAuthor\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"expectedWorkflowId\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"expectedWorkflowName\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes10\",\"internalType\":\"bytes10\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"setForwarderAddress\",\"inputs\":[{\"name\":\"_forwarder\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setExpectedAuthor\",\"inputs\":[{\"name\":\"_author\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setExpectedWorkflowId\",\"inputs\":[{\"name\":\"_id\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setExpectedWorkflowName\",\"inputs\":[{\"name\":\"_name\",\"type\":\"string\",\"internalType\":\"string\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"owner\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"transferOwnership\",\"inputs\":[{\"name\":\"newOwner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"renounceOwnership\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"supportsInterface\",\"inputs\":[{\"name\":\"interfaceId\",\"type\":\"bytes4\",\"internalType\":\"bytes4\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"pure\"},{\"type\":\"event\",\"name\":\"DealCreated\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"advertiser\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"influencer\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"token\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"contentHash\",\"type\":\"bytes32\",\"indexed\":false,\"internalType\":\"bytes32\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DealAccepted\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"influencer\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DealCancelled\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"advertiser\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"FundsReleased\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"influencer\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"token\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"influencerAmount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"feeAmount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"FundsRefunded\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"advertiser\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"token\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DisputeRaised\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"raisedBy\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DisputeResolved\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"releasedToInfluencer\",\"type\":\"bool\",\"indexed\":false,\"internalType\":\"bool\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DeliveryActionCalled\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"TokenWhitelisted\",\"inputs\":[{\"name\":\"token\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"TokenRemovedFromWhitelist\",\"inputs\":[{\"name\":\"token\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"inputs\":[{\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"InvalidState\",\"inputs\":[{\"name\":\"current\",\"type\":\"uint8\",\"internalType\":\"enumAdEscrowV2.CampaignState\"},{\"name\":\"expected\",\"type\":\"uint8\",\"internalType\":\"enumAdEscrowV2.CampaignState\"}]},{\"type\":\"error\",\"name\":\"NotAdvertiser\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotInfluencer\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotParticipant\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"InvalidAmount\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"TokenNotWhitelisted\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"CampaignExpired\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"CampaignNotExpired\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"FeeTooHigh\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"DealAlreadyExists\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"InvalidAuthor\",\"inputs\":[{\"name\":\"received\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"expected\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"InvalidSender\",\"inputs\":[{\"name\":\"sender\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"expected\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"InvalidWorkflowId\",\"inputs\":[{\"name\":\"received\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"expected\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}]},{\"type\":\"error\",\"name\":\"InvalidWorkflowName\",\"inputs\":[{\"name\":\"received\",\"type\":\"bytes10\",\"internalType\":\"bytes10\"},{\"name\":\"expected\",\"type\":\"bytes10\",\"internalType\":\"bytes10\"}]},{\"type\":\"error\",\"name\":\"OwnableInvalidOwner\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"OwnableUnauthorizedAccount\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"SafeERC20FailedOperation\",\"inputs\":[{\"name\":\"token\",\"type\":\"address\",\"internalType\":\"address\"}]}]",
+	ABI: "[{\"type\":\"constructor\",\"inputs\":[{\"name\":\"_forwarder\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_whitelistedTokens\",\"type\":\"address[]\",\"internalType\":\"address[]\"},{\"name\":\"_platformFeeBps\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_feeRecipient\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"receive\",\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"MAX_FEE_BPS\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"NATIVE_ETH_ADDRESS\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"acceptDeal\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"tweetUrl\",\"type\":\"string\",\"internalType\":\"string\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"cancelDeal\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"claimExpired\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"deals\",\"inputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"advertiser\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"influencer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"token\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"contentHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"minViews\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"campaignDuration\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"deadline\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"state\",\"type\":\"uint8\",\"internalType\":\"enumAdEscrowV2.CampaignState\"},{\"name\":\"platformFee\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"influencerAccepted\",\"type\":\"bool\",\"internalType\":\"bool\"},{\"name\":\"channelName\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"tweetUrl\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"deposit\",\"inputs\":[{\"name\":\"p\",\"type\":\"tuple\",\"internalType\":\"structAdEscrowV2.DepositParams\",\"components\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"token\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"influencer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"contentHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"minViews\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"expiryDeadline\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"campaignDuration\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"channelName\",\"type\":\"string\",\"internalType\":\"string\"}]}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"expectedAuthor\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"expectedWorkflowId\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"expectedWorkflowName\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes10\",\"internalType\":\"bytes10\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"feeRecipient\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"forwarderAddress\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getDeal\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structAdEscrowV2.Campaign\",\"components\":[{\"name\":\"advertiser\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"influencer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"token\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"contentHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"minViews\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"campaignDuration\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"deadline\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"state\",\"type\":\"uint8\",\"internalType\":\"enumAdEscrowV2.CampaignState\"},{\"name\":\"platformFee\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"influencerAccepted\",\"type\":\"bool\",\"internalType\":\"bool\"},{\"name\":\"channelName\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"tweetUrl\",\"type\":\"string\",\"internalType\":\"string\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"isExpired\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"onReport\",\"inputs\":[{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"report\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"owner\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"platformFeeBps\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"raiseDispute\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"removeTokenFromWhitelist\",\"inputs\":[{\"name\":\"token\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"renounceOwnership\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"resolveDispute\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"releaseToInfluencer\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setExpectedAuthor\",\"inputs\":[{\"name\":\"_author\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setExpectedWorkflowId\",\"inputs\":[{\"name\":\"_id\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setExpectedWorkflowName\",\"inputs\":[{\"name\":\"_name\",\"type\":\"string\",\"internalType\":\"string\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setFeeRecipient\",\"inputs\":[{\"name\":\"_recipient\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setForwarderAddress\",\"inputs\":[{\"name\":\"_forwarder\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setPlatformFeeBps\",\"inputs\":[{\"name\":\"_feeBps\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"supportsInterface\",\"inputs\":[{\"name\":\"interfaceId\",\"type\":\"bytes4\",\"internalType\":\"bytes4\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"transferOwnership\",\"inputs\":[{\"name\":\"newOwner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"whitelistToken\",\"inputs\":[{\"name\":\"token\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"whitelistedTokens\",\"inputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"DealAccepted\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"influencer\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"tweetUrl\",\"type\":\"string\",\"indexed\":false,\"internalType\":\"string\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DealCancelled\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"advertiser\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DealCreated\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"advertiser\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"influencer\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"token\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"contentHash\",\"type\":\"bytes32\",\"indexed\":false,\"internalType\":\"bytes32\"},{\"name\":\"channelName\",\"type\":\"string\",\"indexed\":false,\"internalType\":\"string\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DisputeRaised\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"raisedBy\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DisputeResolved\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"releasedToInfluencer\",\"type\":\"bool\",\"indexed\":false,\"internalType\":\"bool\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"FundsRefunded\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"advertiser\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"token\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"FundsReleased\",\"inputs\":[{\"name\":\"dealId\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"influencer\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"token\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"influencerAmount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"feeAmount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"inputs\":[{\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"TokenRemovedFromWhitelist\",\"inputs\":[{\"name\":\"token\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"TokenWhitelisted\",\"inputs\":[{\"name\":\"token\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"AlreadyAccepted\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"CampaignExpired\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"CampaignNotExpired\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"DealAlreadyExists\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"FeeTooHigh\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"InvalidAmount\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"InvalidAuthor\",\"inputs\":[{\"name\":\"received\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"expected\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"InvalidSender\",\"inputs\":[{\"name\":\"sender\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"expected\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"InvalidState\",\"inputs\":[{\"name\":\"current\",\"type\":\"uint8\",\"internalType\":\"enumAdEscrowV2.CampaignState\"},{\"name\":\"expected\",\"type\":\"uint8\",\"internalType\":\"enumAdEscrowV2.CampaignState\"}]},{\"type\":\"error\",\"name\":\"InvalidWorkflowId\",\"inputs\":[{\"name\":\"received\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"expected\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}]},{\"type\":\"error\",\"name\":\"InvalidWorkflowName\",\"inputs\":[{\"name\":\"received\",\"type\":\"bytes10\",\"internalType\":\"bytes10\"},{\"name\":\"expected\",\"type\":\"bytes10\",\"internalType\":\"bytes10\"}]},{\"type\":\"error\",\"name\":\"NotAdvertiser\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotInfluencer\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotParticipant\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"OwnableInvalidOwner\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"OwnableUnauthorizedAccount\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"ReentrancyGuardReentrantCall\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"SafeERC20FailedOperation\",\"inputs\":[{\"name\":\"token\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"TokenNotWhitelisted\",\"inputs\":[]}]",
 }
 
 // Structs
@@ -67,11 +67,26 @@ type AdEscrowV2Campaign struct {
 	State              uint8
 	PlatformFee        *big.Int
 	InfluencerAccepted bool
+	ChannelName        string
+	TweetUrl           string
+}
+
+type AdEscrowV2DepositParams struct {
+	DealId           *big.Int
+	Token            common.Address
+	Influencer       common.Address
+	Amount           *big.Int
+	ContentHash      [32]byte
+	MinViews         *big.Int
+	ExpiryDeadline   *big.Int
+	CampaignDuration uint64
+	ChannelName      string
 }
 
 // Contract Method Inputs
 type AcceptDealInput struct {
-	DealId *big.Int
+	DealId   *big.Int
+	TweetUrl string
 }
 
 type CancelDealInput struct {
@@ -87,14 +102,7 @@ type DealsInput struct {
 }
 
 type DepositInput struct {
-	DealId           *big.Int
-	Token            common.Address
-	Influencer       common.Address
-	Amount           *big.Int
-	ContentHash      [32]byte
-	MinViews         *big.Int
-	ExpiryDeadline   *big.Int
-	CampaignDuration uint64
+	P AdEscrowV2DepositParams
 }
 
 type GetDealInput struct {
@@ -176,9 +184,14 @@ type DealsOutput struct {
 	State              uint8
 	PlatformFee        *big.Int
 	InfluencerAccepted bool
+	ChannelName        string
+	TweetUrl           string
 }
 
 // Errors
+type AlreadyAccepted struct {
+}
+
 type CampaignExpired struct {
 }
 
@@ -236,6 +249,9 @@ type OwnableUnauthorizedAccount struct {
 	Account common.Address
 }
 
+type ReentrancyGuardReentrantCall struct {
+}
+
 type SafeERC20FailedOperation struct {
 	Token common.Address
 }
@@ -261,6 +277,7 @@ type DealAcceptedTopics struct {
 type DealAcceptedDecoded struct {
 	DealId     *big.Int
 	Influencer common.Address
+	TweetUrl   string
 }
 
 type DealCancelledTopics struct {
@@ -286,14 +303,7 @@ type DealCreatedDecoded struct {
 	Token       common.Address
 	Amount      *big.Int
 	ContentHash [32]byte
-}
-
-type DeliveryActionCalledTopics struct {
-	DealId *big.Int
-}
-
-type DeliveryActionCalledDecoded struct {
-	DealId *big.Int
+	ChannelName string
 }
 
 type DisputeRaisedTopics struct {
@@ -422,6 +432,7 @@ type EscrowV2Codec interface {
 	EncodeWhitelistedTokensMethodCall(in WhitelistedTokensInput) ([]byte, error)
 	DecodeWhitelistedTokensMethodOutput(data []byte) (bool, error)
 	EncodeAdEscrowV2CampaignStruct(in AdEscrowV2Campaign) ([]byte, error)
+	EncodeAdEscrowV2DepositParamsStruct(in AdEscrowV2DepositParams) ([]byte, error)
 	DealAcceptedLogHash() []byte
 	EncodeDealAcceptedTopics(evt abi.Event, values []DealAcceptedTopics) ([]*evm.TopicValues, error)
 	DecodeDealAccepted(log *evm.Log) (*DealAcceptedDecoded, error)
@@ -431,9 +442,6 @@ type EscrowV2Codec interface {
 	DealCreatedLogHash() []byte
 	EncodeDealCreatedTopics(evt abi.Event, values []DealCreatedTopics) ([]*evm.TopicValues, error)
 	DecodeDealCreated(log *evm.Log) (*DealCreatedDecoded, error)
-	DeliveryActionCalledLogHash() []byte
-	EncodeDeliveryActionCalledTopics(evt abi.Event, values []DeliveryActionCalledTopics) ([]*evm.TopicValues, error)
-	DecodeDeliveryActionCalled(log *evm.Log) (*DeliveryActionCalledDecoded, error)
 	DisputeRaisedLogHash() []byte
 	EncodeDisputeRaisedTopics(evt abi.Event, values []DisputeRaisedTopics) ([]*evm.TopicValues, error)
 	DecodeDisputeRaised(log *evm.Log) (*DisputeRaisedDecoded, error)
@@ -536,7 +544,7 @@ func (c *Codec) DecodeNATIVEETHADDRESSMethodOutput(data []byte) (common.Address,
 }
 
 func (c *Codec) EncodeAcceptDealMethodCall(in AcceptDealInput) ([]byte, error) {
-	return c.abi.Pack("acceptDeal", in.DealId)
+	return c.abi.Pack("acceptDeal", in.DealId, in.TweetUrl)
 }
 
 func (c *Codec) EncodeCancelDealMethodCall(in CancelDealInput) ([]byte, error) {
@@ -556,8 +564,8 @@ func (c *Codec) DecodeDealsMethodOutput(data []byte) (DealsOutput, error) {
 	if err != nil {
 		return DealsOutput{}, err
 	}
-	if len(vals) != 11 {
-		return DealsOutput{}, fmt.Errorf("expected 11 values, got %d", len(vals))
+	if len(vals) != 13 {
+		return DealsOutput{}, fmt.Errorf("expected 13 values, got %d", len(vals))
 	}
 	jsonData0, err := json.Marshal(vals[0])
 	if err != nil {
@@ -658,6 +666,24 @@ func (c *Codec) DecodeDealsMethodOutput(data []byte) (DealsOutput, error) {
 	if err := json.Unmarshal(jsonData10, &result10); err != nil {
 		return DealsOutput{}, fmt.Errorf("failed to unmarshal to bool: %w", err)
 	}
+	jsonData11, err := json.Marshal(vals[11])
+	if err != nil {
+		return DealsOutput{}, fmt.Errorf("failed to marshal ABI result 11: %w", err)
+	}
+
+	var result11 string
+	if err := json.Unmarshal(jsonData11, &result11); err != nil {
+		return DealsOutput{}, fmt.Errorf("failed to unmarshal to string: %w", err)
+	}
+	jsonData12, err := json.Marshal(vals[12])
+	if err != nil {
+		return DealsOutput{}, fmt.Errorf("failed to marshal ABI result 12: %w", err)
+	}
+
+	var result12 string
+	if err := json.Unmarshal(jsonData12, &result12); err != nil {
+		return DealsOutput{}, fmt.Errorf("failed to unmarshal to string: %w", err)
+	}
 
 	return DealsOutput{
 		Advertiser:         result0,
@@ -671,11 +697,13 @@ func (c *Codec) DecodeDealsMethodOutput(data []byte) (DealsOutput, error) {
 		State:              result8,
 		PlatformFee:        result9,
 		InfluencerAccepted: result10,
+		ChannelName:        result11,
+		TweetUrl:           result12,
 	}, nil
 }
 
 func (c *Codec) EncodeDepositMethodCall(in DepositInput) ([]byte, error) {
-	return c.abi.Pack("deposit", in.DealId, in.Token, in.Influencer, in.Amount, in.ContentHash, in.MinViews, in.ExpiryDeadline, in.CampaignDuration)
+	return c.abi.Pack("deposit", in.P)
 }
 
 func (c *Codec) EncodeExpectedAuthorMethodCall() ([]byte, error) {
@@ -987,6 +1015,8 @@ func (c *Codec) EncodeAdEscrowV2CampaignStruct(in AdEscrowV2Campaign) ([]byte, e
 			{Name: "state", Type: "uint8"},
 			{Name: "platformFee", Type: "uint256"},
 			{Name: "influencerAccepted", Type: "bool"},
+			{Name: "channelName", Type: "string"},
+			{Name: "tweetUrl", Type: "string"},
 		},
 	)
 	if err != nil {
@@ -994,6 +1024,30 @@ func (c *Codec) EncodeAdEscrowV2CampaignStruct(in AdEscrowV2Campaign) ([]byte, e
 	}
 	args := abi.Arguments{
 		{Name: "adEscrowV2Campaign", Type: tupleType},
+	}
+
+	return args.Pack(in)
+}
+func (c *Codec) EncodeAdEscrowV2DepositParamsStruct(in AdEscrowV2DepositParams) ([]byte, error) {
+	tupleType, err := abi.NewType(
+		"tuple", "",
+		[]abi.ArgumentMarshaling{
+			{Name: "dealId", Type: "uint256"},
+			{Name: "token", Type: "address"},
+			{Name: "influencer", Type: "address"},
+			{Name: "amount", Type: "uint256"},
+			{Name: "contentHash", Type: "bytes32"},
+			{Name: "minViews", Type: "uint256"},
+			{Name: "expiryDeadline", Type: "uint256"},
+			{Name: "campaignDuration", Type: "uint64"},
+			{Name: "channelName", Type: "string"},
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tuple type for AdEscrowV2DepositParams: %w", err)
+	}
+	args := abi.Arguments{
+		{Name: "adEscrowV2DepositParams", Type: tupleType},
 	}
 
 	return args.Pack(in)
@@ -1210,66 +1264,6 @@ func (c *Codec) DecodeDealCreated(log *evm.Log) (*DealCreatedDecoded, error) {
 	}
 	var indexed abi.Arguments
 	for _, arg := range c.abi.Events["DealCreated"].Inputs {
-		if arg.Indexed {
-			if arg.Type.T == abi.TupleTy {
-				// abigen throws on tuple, so converting to bytes to
-				// receive back the common.Hash as is instead of error
-				arg.Type.T = abi.BytesTy
-			}
-			indexed = append(indexed, arg)
-		}
-	}
-	// Convert [][]byte → []common.Hash
-	topics := make([]common.Hash, len(log.Topics))
-	for i, t := range log.Topics {
-		topics[i] = common.BytesToHash(t)
-	}
-
-	if err := abi.ParseTopics(event, indexed, topics[1:]); err != nil {
-		return nil, err
-	}
-	return event, nil
-}
-
-func (c *Codec) DeliveryActionCalledLogHash() []byte {
-	return c.abi.Events["DeliveryActionCalled"].ID.Bytes()
-}
-
-func (c *Codec) EncodeDeliveryActionCalledTopics(
-	evt abi.Event,
-	values []DeliveryActionCalledTopics,
-) ([]*evm.TopicValues, error) {
-	var dealIdRule []interface{}
-	for _, v := range values {
-		if reflect.ValueOf(v.DealId).IsZero() {
-			dealIdRule = append(dealIdRule, common.Hash{})
-			continue
-		}
-		fieldVal, err := bindings.PrepareTopicArg(evt.Inputs[0], v.DealId)
-		if err != nil {
-			return nil, err
-		}
-		dealIdRule = append(dealIdRule, fieldVal)
-	}
-
-	rawTopics, err := abi.MakeTopics(
-		dealIdRule,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return bindings.PrepareTopics(rawTopics, evt.ID.Bytes()), nil
-}
-
-// DecodeDeliveryActionCalled decodes a log into a DeliveryActionCalled struct.
-func (c *Codec) DecodeDeliveryActionCalled(log *evm.Log) (*DeliveryActionCalledDecoded, error) {
-	event := new(DeliveryActionCalledDecoded)
-	if err := c.abi.UnpackIntoInterface(event, "DeliveryActionCalled", log.Data); err != nil {
-		return nil, err
-	}
-	var indexed abi.Arguments
-	for _, arg := range c.abi.Events["DeliveryActionCalled"].Inputs {
 		if arg.Indexed {
 			if arg.Type.T == abi.TupleTy {
 				// abigen throws on tuple, so converting to bytes to
@@ -2273,6 +2267,31 @@ func (c EscrowV2) WriteReportFromAdEscrowV2Campaign(
 	})
 }
 
+func (c EscrowV2) WriteReportFromAdEscrowV2DepositParams(
+	runtime cre.Runtime,
+	input AdEscrowV2DepositParams,
+	gasConfig *evm.GasConfig,
+) cre.Promise[*evm.WriteReportReply] {
+	encoded, err := c.Codec.EncodeAdEscrowV2DepositParamsStruct(input)
+	if err != nil {
+		return cre.PromiseFromResult[*evm.WriteReportReply](nil, err)
+	}
+	promise := runtime.GenerateReport(&pb2.ReportRequest{
+		EncodedPayload: encoded,
+		EncoderName:    "evm",
+		SigningAlgo:    "ecdsa",
+		HashingAlgo:    "keccak256",
+	})
+
+	return cre.ThenPromise(promise, func(report *cre.Report) cre.Promise[*evm.WriteReportReply] {
+		return c.client.WriteReport(runtime, &evm.WriteCreReportRequest{
+			Receiver:  c.Address.Bytes(),
+			Report:    report,
+			GasConfig: gasConfig,
+		})
+	})
+}
+
 func (c EscrowV2) WriteReport(
 	runtime cre.Runtime,
 	report *cre.Report,
@@ -2283,6 +2302,25 @@ func (c EscrowV2) WriteReport(
 		Report:    report,
 		GasConfig: gasConfig,
 	})
+}
+
+// DecodeAlreadyAcceptedError decodes a AlreadyAccepted error from revert data.
+func (c *EscrowV2) DecodeAlreadyAcceptedError(data []byte) (*AlreadyAccepted, error) {
+	args := c.ABI.Errors["AlreadyAccepted"].Inputs
+	values, err := args.Unpack(data[4:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to unpack error: %w", err)
+	}
+	if len(values) != 0 {
+		return nil, fmt.Errorf("expected 0 values, got %d", len(values))
+	}
+
+	return &AlreadyAccepted{}, nil
+}
+
+// Error implements the error interface for AlreadyAccepted.
+func (e *AlreadyAccepted) Error() string {
+	return fmt.Sprintf("AlreadyAccepted error:")
 }
 
 // DecodeCampaignExpiredError decodes a CampaignExpired error from revert data.
@@ -2649,6 +2687,25 @@ func (e *OwnableUnauthorizedAccount) Error() string {
 	return fmt.Sprintf("OwnableUnauthorizedAccount error: account=%v;", e.Account)
 }
 
+// DecodeReentrancyGuardReentrantCallError decodes a ReentrancyGuardReentrantCall error from revert data.
+func (c *EscrowV2) DecodeReentrancyGuardReentrantCallError(data []byte) (*ReentrancyGuardReentrantCall, error) {
+	args := c.ABI.Errors["ReentrancyGuardReentrantCall"].Inputs
+	values, err := args.Unpack(data[4:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to unpack error: %w", err)
+	}
+	if len(values) != 0 {
+		return nil, fmt.Errorf("expected 0 values, got %d", len(values))
+	}
+
+	return &ReentrancyGuardReentrantCall{}, nil
+}
+
+// Error implements the error interface for ReentrancyGuardReentrantCall.
+func (e *ReentrancyGuardReentrantCall) Error() string {
+	return fmt.Sprintf("ReentrancyGuardReentrantCall error:")
+}
+
 // DecodeSafeERC20FailedOperationError decodes a SafeERC20FailedOperation error from revert data.
 func (c *EscrowV2) DecodeSafeERC20FailedOperationError(data []byte) (*SafeERC20FailedOperation, error) {
 	args := c.ABI.Errors["SafeERC20FailedOperation"].Inputs
@@ -2696,6 +2753,8 @@ func (e *TokenNotWhitelisted) Error() string {
 
 func (c *EscrowV2) UnpackError(data []byte) (any, error) {
 	switch common.Bytes2Hex(data[:4]) {
+	case common.Bytes2Hex(c.ABI.Errors["AlreadyAccepted"].ID.Bytes()[:4]):
+		return c.DecodeAlreadyAcceptedError(data)
 	case common.Bytes2Hex(c.ABI.Errors["CampaignExpired"].ID.Bytes()[:4]):
 		return c.DecodeCampaignExpiredError(data)
 	case common.Bytes2Hex(c.ABI.Errors["CampaignNotExpired"].ID.Bytes()[:4]):
@@ -2726,6 +2785,8 @@ func (c *EscrowV2) UnpackError(data []byte) (any, error) {
 		return c.DecodeOwnableInvalidOwnerError(data)
 	case common.Bytes2Hex(c.ABI.Errors["OwnableUnauthorizedAccount"].ID.Bytes()[:4]):
 		return c.DecodeOwnableUnauthorizedAccountError(data)
+	case common.Bytes2Hex(c.ABI.Errors["ReentrancyGuardReentrantCall"].ID.Bytes()[:4]):
+		return c.DecodeReentrancyGuardReentrantCallError(data)
 	case common.Bytes2Hex(c.ABI.Errors["SafeERC20FailedOperation"].ID.Bytes()[:4]):
 		return c.DecodeSafeERC20FailedOperationError(data)
 	case common.Bytes2Hex(c.ABI.Errors["TokenNotWhitelisted"].ID.Bytes()[:4]):
@@ -2895,62 +2956,6 @@ func (c *EscrowV2) FilterLogsDealCreated(runtime cre.Runtime, options *bindings.
 			Addresses: [][]byte{c.Address.Bytes()},
 			Topics: []*evm.Topics{
 				{Topic: [][]byte{c.Codec.DealCreatedLogHash()}},
-			},
-			BlockHash: options.BlockHash,
-			FromBlock: pb.NewBigIntFromInt(options.FromBlock),
-			ToBlock:   pb.NewBigIntFromInt(options.ToBlock),
-		},
-	}), nil
-}
-
-// DeliveryActionCalledTrigger wraps the raw log trigger and provides decoded DeliveryActionCalledDecoded data
-type DeliveryActionCalledTrigger struct {
-	cre.Trigger[*evm.Log, *evm.Log]           // Embed the raw trigger
-	contract                        *EscrowV2 // Keep reference for decoding
-}
-
-// Adapt method that decodes the log into DeliveryActionCalled data
-func (t *DeliveryActionCalledTrigger) Adapt(l *evm.Log) (*bindings.DecodedLog[DeliveryActionCalledDecoded], error) {
-	// Decode the log using the contract's codec
-	decoded, err := t.contract.Codec.DecodeDeliveryActionCalled(l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode DeliveryActionCalled log: %w", err)
-	}
-
-	return &bindings.DecodedLog[DeliveryActionCalledDecoded]{
-		Log:  l,        // Original log
-		Data: *decoded, // Decoded data
-	}, nil
-}
-
-func (c *EscrowV2) LogTriggerDeliveryActionCalledLog(chainSelector uint64, confidence evm.ConfidenceLevel, filters []DeliveryActionCalledTopics) (cre.Trigger[*evm.Log, *bindings.DecodedLog[DeliveryActionCalledDecoded]], error) {
-	event := c.ABI.Events["DeliveryActionCalled"]
-	topics, err := c.Codec.EncodeDeliveryActionCalledTopics(event, filters)
-	if err != nil {
-		return nil, fmt.Errorf("failed to encode topics for DeliveryActionCalled: %w", err)
-	}
-
-	rawTrigger := evm.LogTrigger(chainSelector, &evm.FilterLogTriggerRequest{
-		Addresses:  [][]byte{c.Address.Bytes()},
-		Topics:     topics,
-		Confidence: confidence,
-	})
-
-	return &DeliveryActionCalledTrigger{
-		Trigger:  rawTrigger,
-		contract: c,
-	}, nil
-}
-
-func (c *EscrowV2) FilterLogsDeliveryActionCalled(runtime cre.Runtime, options *bindings.FilterOptions) (cre.Promise[*evm.FilterLogsReply], error) {
-	if options == nil {
-		return nil, errors.New("FilterLogs options are required.")
-	}
-	return c.client.FilterLogs(runtime, &evm.FilterLogsRequest{
-		FilterQuery: &evm.FilterQuery{
-			Addresses: [][]byte{c.Address.Bytes()},
-			Topics: []*evm.Topics{
-				{Topic: [][]byte{c.Codec.DeliveryActionCalledLogHash()}},
 			},
 			BlockHash: options.BlockHash,
 			FromBlock: pb.NewBigIntFromInt(options.FromBlock),

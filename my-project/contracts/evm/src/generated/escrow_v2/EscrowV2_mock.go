@@ -104,6 +104,8 @@ func NewEscrowV2Mock(address common.Address, clientMock *evmmock.ClientCapabilit
 				result.State,
 				result.PlatformFee,
 				result.InfluencerAccepted,
+				result.ChannelName,
+				result.TweetUrl,
 			)
 		},
 		string(abi.Methods["expectedAuthor"].ID[:4]): func(payload []byte) ([]byte, error) {
