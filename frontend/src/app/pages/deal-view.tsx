@@ -136,12 +136,16 @@ export function DealView() {
   const [loading, setLoading] = useState(true);
   const [fundingError, setFundingError] = useState('');
   const [isFunding, setIsFunding] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
 
   const [isAdvertiserFromApi, setIsAdvertiserFromApi] = useState(false);
   const [isInfluencerFromApi, setIsInfluencerFromApi] = useState(false);
   const [advertiserWalletFromApi, setAdvertiserWalletFromApi] = useState<string | undefined>(undefined);
+  const [influencerWalletFromApi, setInfluencerWalletFromApi] = useState<string | undefined>(undefined);
+  const [chainTxHashes, setChainTxHashes] = useState<{ acceptDealTx?: string; settlementTx?: string }>({});
 
   useEffect(() => {
     if (!id) return;
@@ -155,6 +159,8 @@ export function DealView() {
         setIsAdvertiserFromApi(Boolean((data as { isAdvertiser?: boolean }).isAdvertiser));
         setIsInfluencerFromApi(Boolean((data as { isInfluencer?: boolean }).isInfluencer));
         setAdvertiserWalletFromApi((data as { advertiserWalletAddress?: string }).advertiserWalletAddress);
+        setInfluencerWalletFromApi((data as { influencerWalletAddress?: string }).influencerWalletAddress);
+        setChainTxHashes((data as { chainTxHashes?: { acceptDealTx?: string; settlementTx?: string } }).chainTxHashes || {});
 
         const promises: Promise<any>[] = [
           apiClient(`/api/campaigns/${d.campaignId}`),
@@ -261,7 +267,7 @@ export function DealView() {
       const deadlineUnix = BigInt(Math.floor(new Date(campaign.expiryDeadline).getTime() / 1000));
       const durationSeconds = BigInt(campaign.campaignDuration || 0);
 
-      const influencerAddress = (deal.proposedBy || '') as `0x${string}`
+      const influencerAddress = (influencerWalletFromApi || '') as `0x${string}`
       if (!influencerAddress) throw new Error('Deal has no influencer address')
 
       const hash = await writeContractAsync({
@@ -318,6 +324,8 @@ export function DealView() {
 
   const handleSubmitTweet = async () => {
     if (!tweetUrl || !deal?.onchainCampaignId) return;
+    setIsSubmitting(true);
+    setSubmitError('');
     try {
       // 1. Call acceptDeal(dealId, tweetUrl) on-chain — stores tweet URL in contract and accepts the deal
       const txHash = await writeContractAsync({
@@ -328,15 +336,18 @@ export function DealView() {
       });
       await waitForTransactionReceipt(wagmiConfig, { hash: txHash });
 
-      // 2. Notify backend (triggers CRE workflow)
+      // 2. Notify backend
       await apiClient(`/api/deals/${id}/post`, {
         method: 'POST',
         body: JSON.stringify({ postUrl: tweetUrl }),
       });
       setCurrentStatus('posted');
       setDeal((prev) => prev ? { ...prev, status: 'posted', postUrl: tweetUrl, postedAt: new Date().toISOString() } : prev);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Submit tweet failed:', err);
+      setSubmitError(err?.shortMessage || err?.message || 'Submission failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -683,10 +694,20 @@ export function DealView() {
                     className="pl-10 bg-elevated border-border-color"
                   />
                 </div>
-                <GradientButton onClick={handleSubmitTweet} disabled={!tweetUrl}>
-                  Submit
+                <GradientButton onClick={handleSubmitTweet} disabled={!tweetUrl || isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : 'Submit'}
                 </GradientButton>
               </div>
+              {submitError && (
+                <div className="mt-3 p-3 bg-error/10 border border-error/20 rounded-lg text-sm text-error">
+                  {submitError}
+                </div>
+              )}
             </div>
           )}
 
@@ -972,6 +993,34 @@ export function DealView() {
                     className="font-mono text-xs text-accent-violet hover:text-accent-blue flex items-center gap-1"
                   >
                     {shortenAddress(campaign.txHash)}
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+              {chainTxHashes.acceptDealTx && (
+                <div>
+                  <div className="text-text-muted mb-1">Accept TX:</div>
+                  <a
+                    href={`https://sepolia.etherscan.io/tx/${chainTxHashes.acceptDealTx}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-xs text-accent-violet hover:text-accent-blue flex items-center gap-1"
+                  >
+                    {shortenAddress(chainTxHashes.acceptDealTx)}
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+              {chainTxHashes.settlementTx && (
+                <div>
+                  <div className="text-text-muted mb-1">Settlement TX:</div>
+                  <a
+                    href={`https://sepolia.etherscan.io/tx/${chainTxHashes.settlementTx}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-xs text-accent-violet hover:text-accent-blue flex items-center gap-1"
+                  >
+                    {shortenAddress(chainTxHashes.settlementTx)}
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>

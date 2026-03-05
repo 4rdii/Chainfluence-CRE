@@ -1,10 +1,13 @@
 import { Hono } from 'hono'
 import { eq, or, desc, inArray } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import { db } from '../db'
 import { deals, verifications, campaigns, users } from '../db/schema'
 import { authMiddleware, type AppEnv } from '../lib/auth'
 import { triggerCREWorkflow } from '../lib/cre-trigger'
-import { getDealStateFromChain } from '../lib/escrow-chain'
+import { getDealStateFromChain, getDealTxHashes } from '../lib/escrow-chain'
+
+const influencerUsers = alias(users, 'influencer_users')
 
 const app = new Hono<AppEnv>()
 app.use('*', authMiddleware)
@@ -77,10 +80,12 @@ app.get('/:id', async (c) => {
       deal: deals,
       campaignAdvertiserId: campaigns.advertiserId,
       advertiserWalletAddress: users.walletAddress,
+      influencerWalletAddress: influencerUsers.walletAddress,
     })
     .from(deals)
     .leftJoin(campaigns, eq(deals.campaignId, campaigns.id))
     .leftJoin(users, eq(campaigns.advertiserId, users.id))
+    .leftJoin(influencerUsers, eq(deals.influencerId, influencerUsers.id))
     .where(eq(deals.id, id))
     .limit(1)
   const row = rows[0]
@@ -112,11 +117,18 @@ app.get('/:id', async (c) => {
 
   const isAdvertiser = row.campaignAdvertiserId != null && row.campaignAdvertiserId === userId
   const isInfluencer = deal.influencerId === userId
+
+  const chainTxHashes = deal.onchainCampaignId != null
+    ? await getDealTxHashes(deal.onchainCampaignId).catch(() => ({}))
+    : {}
+
   return c.json({
     deal,
     isAdvertiser,
     isInfluencer,
     advertiserWalletAddress: row.advertiserWalletAddress ?? undefined,
+    influencerWalletAddress: row.influencerWalletAddress ?? undefined,
+    chainTxHashes,
   })
 })
 

@@ -23,17 +23,25 @@ const getDealAbi = [
     stateMutability: 'view',
     inputs: [{ name: 'dealId', type: 'uint256' }],
     outputs: [
-      { name: 'advertiser', type: 'address' },
-      { name: 'influencer', type: 'address' },
-      { name: 'token', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-      { name: 'contentHash', type: 'bytes32' },
-      { name: 'minViews', type: 'uint256' },
-      { name: 'campaignDuration', type: 'uint64' },
-      { name: 'deadline', type: 'uint256' },
-      { name: 'state', type: 'uint8' },
-      { name: 'platformFee', type: 'uint256' },
-      { name: 'influencerAccepted', type: 'bool' },
+      {
+        name: '',
+        type: 'tuple',
+        components: [
+          { name: 'advertiser', type: 'address' },
+          { name: 'influencer', type: 'address' },
+          { name: 'token', type: 'address' },
+          { name: 'amount', type: 'uint256' },
+          { name: 'contentHash', type: 'bytes32' },
+          { name: 'minViews', type: 'uint256' },
+          { name: 'campaignDuration', type: 'uint64' },
+          { name: 'deadline', type: 'uint256' },
+          { name: 'state', type: 'uint8' },
+          { name: 'platformFee', type: 'uint256' },
+          { name: 'influencerAccepted', type: 'bool' },
+          { name: 'channelName', type: 'string' },
+          { name: 'tweetUrl', type: 'string' },
+        ],
+      },
     ],
   },
 ] as const
@@ -44,6 +52,59 @@ const publicClient = createPublicClient({
 })
 
 export type OnChainDealState = 'funded' | 'accepted' | 'posted' | 'verifying' | 'completed' | 'refunded' | 'disputed' | 'cancelled'
+
+const dealEventsAbi = [
+  {
+    name: 'DealAccepted',
+    type: 'event',
+    inputs: [
+      { name: 'dealId', type: 'uint256', indexed: true },
+      { name: 'influencer', type: 'address', indexed: true },
+      { name: 'tweetUrl', type: 'string', indexed: false },
+    ],
+  },
+  {
+    name: 'FundsReleased',
+    type: 'event',
+    inputs: [
+      { name: 'dealId', type: 'uint256', indexed: true },
+      { name: 'influencer', type: 'address', indexed: true },
+      { name: 'token', type: 'address', indexed: false },
+      { name: 'influencerAmount', type: 'uint256', indexed: false },
+      { name: 'feeAmount', type: 'uint256', indexed: false },
+    ],
+  },
+  {
+    name: 'FundsRefunded',
+    type: 'event',
+    inputs: [
+      { name: 'dealId', type: 'uint256', indexed: true },
+      { name: 'advertiser', type: 'address', indexed: true },
+      { name: 'token', type: 'address', indexed: false },
+      { name: 'amount', type: 'uint256', indexed: false },
+    ],
+  },
+] as const
+
+export async function getDealTxHashes(dealId: number): Promise<{
+  acceptDealTx?: string
+  settlementTx?: string
+}> {
+  try {
+    const [acceptedLogs, releasedLogs, refundedLogs] = await Promise.all([
+      publicClient.getLogs({ address: ESCROW_ADDRESS, event: dealEventsAbi[0], args: { dealId: BigInt(dealId) }, fromBlock: 0n, toBlock: 'latest' }),
+      publicClient.getLogs({ address: ESCROW_ADDRESS, event: dealEventsAbi[1], args: { dealId: BigInt(dealId) }, fromBlock: 0n, toBlock: 'latest' }),
+      publicClient.getLogs({ address: ESCROW_ADDRESS, event: dealEventsAbi[2], args: { dealId: BigInt(dealId) }, fromBlock: 0n, toBlock: 'latest' }),
+    ])
+    return {
+      acceptDealTx: acceptedLogs[0]?.transactionHash ?? undefined,
+      settlementTx: (releasedLogs[0] ?? refundedLogs[0])?.transactionHash ?? undefined,
+    }
+  } catch (err) {
+    console.error('[escrow-chain] getDealTxHashes failed', err)
+    return {}
+  }
+}
 
 /**
  * Read deal state from the escrow contract. Returns our app status string or null if read fails.
@@ -57,8 +118,7 @@ export async function getDealStateFromChain(dealId: number): Promise<OnChainDeal
       functionName: 'getDeal',
       args: [BigInt(dealId)],
     })
-    // result is array: [advertiser, influencer, token, amount, contentHash, minViews, campaignDuration, deadline, state, platformFee, influencerAccepted]
-    const state = Number(result[8])
+    const state = Number(result.state)
     console.log('[escrow-chain] getDeal contract result', { dealId, rawState: state })
     let status: OnChainDealState
     switch (state) {
