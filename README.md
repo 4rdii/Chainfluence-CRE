@@ -23,6 +23,10 @@ Chainfluence is a decentralized Twitter/X advertising marketplace. Advertisers c
 5. **Workflow** fetches tweet data via X API (DON consensus), checks content hash, edit status, and view count
 6. **Contract** receives the signed fulfillment report — releases funds to influencer or refunds advertiser
 
+### Sybil Resistance — World ID
+
+Influencers verify their humanity via [World ID](https://world.org/world-id) (Orb-level proof) when registering a channel. Each World ID can only verify one channel, preventing bot farms and duplicate accounts. Verified channels display a **"Human"** badge in the marketplace.
+
 ## Deployed Contracts (Sepolia)
 
 | Contract | Address |
@@ -62,6 +66,22 @@ cre workflow simulate my-workflow \
 
 - [x] **Enforce post duration in workflow** — `main.go` now checks `postedDuration < campaign.CampaignDuration` before releasing.
 - [ ] **Channel owner check on propose** — `POST /api/channels/:id/propose` does not verify the requesting user owns that channel. Add an ownership guard to prevent spoofed proposals.
+
+## Environment Variables
+
+### Backend (`backend/.env`)
+| Variable | Description |
+|----------|-------------|
+| `WORLD_ID_APP_ID` | World ID app ID (`app_23fa3c8124a793479d513fa793a3349c`) |
+| `WORLD_ID_ACTION_ID` | World ID action identifier (default: `verify-channel`) |
+
+### Frontend (`frontend/.env`)
+| Variable | Description |
+|----------|-------------|
+| `VITE_WORLD_ID_APP_ID` | Same World ID app ID (for IDKit widget) |
+| `VITE_WORLD_ID_ACTION_ID` | Same action ID (default: `verify-channel`) |
+
+See [Development docs](docs/development.md) for the full list of env vars.
 
 ## Secrets & Security
 

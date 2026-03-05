@@ -7,7 +7,7 @@ import { GradientButton } from '../components/gradient-button';
 import { Switch } from '../components/ui/switch';
 import { apiClient } from '../lib/api';
 
-const WORLD_ID_APP_ID = (import.meta.env.VITE_WORLD_ID_APP_ID || 'app_staging_0000000000000000000000') as `app_${string}`;
+const WORLD_ID_APP_ID = (import.meta.env.VITE_WORLD_ID_APP_ID || 'app_23fa3c8124a793479d513fa793a3349c') as `app_${string}`;
 const WORLD_ID_ACTION_ID = import.meta.env.VITE_WORLD_ID_ACTION_ID || 'verify-channel';
 
 interface Channel {
