@@ -52,6 +52,8 @@ In Tailwind these map to custom classes defined in `frontend/src/styles/theme.cs
 | refunded | red |
 | disputed | gray |
 
+**World ID "Human" badge:** `bg-emerald-500/10 text-emerald-400`, pill shape with `ShieldCheck` icon. Shown next to channel handle on: marketplace influencer cards, channel detail page, and my-channels page.
+
 ## Layout
 
 **Header** (fixed 64px): Logo left. Right: network pill ("Sepolia"), wallet address with Jazzicon avatar, notification bell.

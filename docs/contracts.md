@@ -30,19 +30,21 @@ Funded → Accepted → [Completed | Refunded | Disputed | Cancelled]
 
 ```solidity
 // Advertiser locks funds (requires ERC-20 approval first)
-function deposit(
-    uint256 dealId,        // must match backend deal ID
-    address token,
-    address influencer,
-    uint256 amount,
-    bytes32 contentHash,   // keccak256(normalizedText)
-    uint256 minViews,
-    uint256 expiryDeadline,
-    uint64  campaignDuration
-) external payable
+struct DepositParams {
+    uint256 dealId;           // must match backend deal ID
+    address token;
+    address influencer;
+    uint256 amount;
+    bytes32 contentHash;      // keccak256(normalizedText)
+    uint256 minViews;
+    uint256 expiryDeadline;
+    uint64  campaignDuration;
+    string  channelName;      // influencer's X handle
+}
+function deposit(DepositParams calldata p) external payable
 
-// Influencer accepts a funded deal
-function acceptDeal(uint256 dealId) external
+// Influencer accepts a funded deal and provides the posted tweet URL
+function acceptDeal(uint256 dealId, string calldata tweetUrl) external
 
 // Advertiser cancels before influencer accepts
 function cancelDeal(uint256 dealId) external
@@ -73,6 +75,26 @@ struct CreReport {
 
 - **Release**: transfers `amount - platformFee` to influencer, `platformFee` to fee recipient
 - **Refund**: returns full `amount` to advertiser
+
+## On-chain Campaign Struct
+
+The `Campaign` struct stored per deal includes:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `advertiser` | `address` | Depositor |
+| `influencer` | `address` | Assigned influencer |
+| `token` | `address` | ERC-20 token (or `address(0)` for ETH) |
+| `amount` | `uint256` | Total deposit |
+| `contentHash` | `bytes32` | keccak256 of normalized tweet text |
+| `minViews` | `uint256` | Required impression count |
+| `campaignDuration` | `uint64` | Minimum seconds tweet must stay live |
+| `deadline` | `uint256` | Unix timestamp — campaign expiry |
+| `state` | `CampaignState` | Current lifecycle state (0–5) |
+| `platformFee` | `uint256` | Fee amount (calculated at deposit) |
+| `influencerAccepted` | `bool` | Whether influencer has accepted |
+| `channelName` | `string` | Influencer's X handle |
+| `tweetUrl` | `string` | Posted tweet URL (set via `acceptDeal`) |
 
 ## Content Hash
 

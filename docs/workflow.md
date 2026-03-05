@@ -21,10 +21,9 @@ Backend triggers workflow via HTTP POST
 |-------|-----|--------------|
 | Edit detection | `editsRemaining < 5` → tweet was edited | Returns `ActionNone` (no release, no refund) |
 | Content match | `keccak256(normalize(tweetText)) == contentHash` | Returns `ActionNone` |
+| Post duration | `elapsed < campaignDuration` → tweet not up long enough | Returns `ActionNone` (retry later) |
 | Min views | `impressionCount >= minViews` | Returns `ActionNone` (retry later) |
 | Deadline | `now > campaign.Deadline` | Submits refund report |
-
-> **Note:** `campaignDuration` (post uptime) is calculated and passed to the contract but is not yet enforced as a blocking condition. See TODO in README.
 
 ## Simulating Locally
 
