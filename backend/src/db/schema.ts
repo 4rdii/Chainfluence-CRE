@@ -39,6 +39,8 @@ export const channels = pgTable('channels', {
   pricePerPost: integer('price_per_post').default(0), // in cents USD
   isActive: boolean('is_active').default(true),
   verifiedAt: timestamp('verified_at'),
+  worldIdNullifier: varchar('world_id_nullifier', { length: 100 }),
+  worldIdVerifiedAt: timestamp('world_id_verified_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { Twitter, Search, Eye, Clock, DollarSign, BadgeCheck, Users, Star } from 'lucide-react';
+import { Twitter, Search, Eye, Clock, DollarSign, BadgeCheck, Users, Star, ShieldCheck } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Input } from '../components/ui/input';
 import { GradientButton } from '../components/gradient-button';
@@ -28,6 +28,7 @@ interface MarketChannel {
     followerCount: number;
     pricePerPost: number;
     categories: string[];
+    worldIdVerifiedAt?: string;
   };
   user: {
     walletAddress: string;
@@ -186,8 +187,14 @@ export function Marketplace() {
                 <div className="flex items-start gap-3 mb-4">
                   <Jazzicon address={item.user.walletAddress} size={40} />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1 mb-1">
+                    <div className="flex items-center gap-1.5 mb-1">
                       <span className="text-accent-violet font-medium truncate">@{item.channel.platformHandle}</span>
+                      {item.channel.worldIdVerifiedAt && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium flex-shrink-0">
+                          <ShieldCheck className="w-3 h-3" />
+                          Human
+                        </span>
+                      )}
                     </div>
                     <div className="font-semibold truncate">{item.user.displayName || item.channel.platformHandle}</div>
                   </div>

@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
-import { Twitter, Plus, Edit2, Trash2, Radio as RadioIcon, Loader2, CheckCircle, BadgeCheck } from 'lucide-react';
+import { Twitter, Plus, Edit2, Trash2, Radio as RadioIcon, Loader2, CheckCircle, BadgeCheck, ShieldCheck } from 'lucide-react';
+import { IDKitRequestWidget, orbLegacy } from '@worldcoin/idkit';
+import type { IDKitResult, IDKitRequestWidgetProps } from '@worldcoin/idkit';
 import { GradientButton } from '../components/gradient-button';
 import { Switch } from '../components/ui/switch';
 import { apiClient } from '../lib/api';
+
+const WORLD_ID_APP_ID = (import.meta.env.VITE_WORLD_ID_APP_ID || 'app_staging_0000000000000000000000') as `app_${string}`;
+const WORLD_ID_ACTION_ID = import.meta.env.VITE_WORLD_ID_ACTION_ID || 'verify-channel';
 
 interface Channel {
   id: number;
@@ -15,12 +20,16 @@ interface Channel {
   categories: string[];
   isActive: boolean;
   verifiedAt?: string;
+  worldIdNullifier?: string;
+  worldIdVerifiedAt?: string;
 }
 
 export function MyChannels() {
   const [channelsList, setChannelsList] = useState<Channel[]>([]);
   const [connecting, setConnecting] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const [worldIdOpen, setWorldIdOpen] = useState<number | null>(null);
 
   const loadChannels = () => {
     apiClient('/api/channels')
@@ -75,6 +84,35 @@ export function MyChannels() {
     if (!confirm('Remove this channel?')) return;
     await apiClient(`/api/channels/${id}`, { method: 'DELETE' }).catch(() => {});
     setChannelsList(channelsList.filter(ch => ch.id !== id));
+  };
+
+  const handleWorldIdVerify = async (channelId: number, result: IDKitResult) => {
+    try {
+      // Extract the orb credential from v3 responses
+      const cred = result.protocol_version === '3.0'
+        ? result.responses[0]
+        : undefined;
+      if (!cred) {
+        console.error('No credential in World ID result');
+        return;
+      }
+      const data = await apiClient(`/api/channels/${channelId}/verify-worldid`, {
+        method: 'POST',
+        body: JSON.stringify({
+          merkle_root: cred.merkle_root,
+          nullifier_hash: cred.nullifier,
+          proof: cred.proof,
+          verification_level: 'orb',
+        }),
+      });
+      if (data.channel) {
+        setChannelsList(prev => prev.map(ch =>
+          ch.id === channelId ? { ...ch, worldIdNullifier: data.channel.worldIdNullifier, worldIdVerifiedAt: data.channel.worldIdVerifiedAt } : ch
+        ));
+      }
+    } catch (err) {
+      console.error('World ID verification failed:', err);
+    }
   };
 
   const EmptyState = () => (
@@ -151,6 +189,12 @@ export function MyChannels() {
                     {channel.verifiedAt && (
                       <BadgeCheck className="w-4 h-4 text-sky-500" />
                     )}
+                    {channel.worldIdVerifiedAt && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium">
+                        <ShieldCheck className="w-3 h-3" />
+                        Human
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-4 text-sm text-text-secondary">
                     <span>{channel.followerCount.toLocaleString()} followers</span>
@@ -184,6 +228,27 @@ export function MyChannels() {
                     onCheckedChange={() => toggleActive(channel.id)}
                   />
                 </div>
+
+                {/* World ID Verify */}
+                {!channel.worldIdVerifiedAt && (
+                  <>
+                    <button
+                      onClick={() => setWorldIdOpen(channel.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-sm font-medium transition-colors"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      Verify Human
+                    </button>
+                    <IDKitRequestWidget
+                      app_id={WORLD_ID_APP_ID}
+                      action={WORLD_ID_ACTION_ID}
+                      preset={orbLegacy({})}
+                      open={worldIdOpen === channel.id}
+                      onOpenChange={(isOpen) => { if (!isOpen) setWorldIdOpen(null); }}
+                      onSuccess={(result) => { setWorldIdOpen(null); handleWorldIdVerify(channel.id, result); }}
+                    />
+                  </>
+                )}
 
                 {/* Edit */}
                 <button className="p-2 hover:bg-elevated rounded-lg transition-colors text-text-secondary hover:text-text-primary">

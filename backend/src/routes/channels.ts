@@ -91,6 +91,72 @@ app.post('/:id/propose', async (c) => {
   return c.json({ campaign, deal }, 201)
 })
 
+// POST /api/channels/:id/verify-worldid — verify channel owner is a unique human via World ID
+app.post('/:id/verify-worldid', async (c) => {
+  const channelId = parseInt(c.req.param('id'))
+  const { userId } = c.get('user')
+
+  // Verify caller owns the channel
+  const [channel] = await db.select().from(channels).where(eq(channels.id, channelId)).limit(1)
+  if (!channel) return c.json({ error: 'Channel not found' }, 404)
+  if (channel.userId !== userId) return c.json({ error: 'Not authorized' }, 403)
+  if (channel.worldIdNullifier) return c.json({ error: 'Channel already verified with World ID' }, 400)
+
+  const body = await c.req.json<{
+    merkle_root: string
+    nullifier_hash: string
+    proof: string
+    verification_level: string
+  }>()
+
+  // Verify the proof with World ID API
+  const appId = process.env.WORLD_ID_APP_ID
+  const actionId = process.env.WORLD_ID_ACTION_ID || 'verify-channel'
+
+  if (!appId) return c.json({ error: 'World ID not configured on server' }, 500)
+
+  const verifyRes = await fetch(
+    `https://developer.worldcoin.org/api/v2/verify/${appId}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        merkle_root: body.merkle_root,
+        nullifier_hash: body.nullifier_hash,
+        proof: body.proof,
+        action: actionId,
+        verification_level: body.verification_level,
+      }),
+    }
+  )
+
+  if (!verifyRes.ok) {
+    const errData = await verifyRes.json().catch(() => ({}))
+    return c.json({ error: 'World ID verification failed', detail: (errData as { detail?: string }).detail || verifyRes.statusText }, 400)
+  }
+
+  // Check uniqueness — same nullifier can't verify two different channels
+  const [existing] = await db
+    .select()
+    .from(channels)
+    .where(eq(channels.worldIdNullifier, body.nullifier_hash))
+    .limit(1)
+  if (existing) return c.json({ error: 'This World ID has already been used to verify another channel' }, 409)
+
+  // Mark channel as verified
+  const [updated] = await db
+    .update(channels)
+    .set({
+      worldIdNullifier: body.nullifier_hash,
+      worldIdVerifiedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(channels.id, channelId))
+    .returning()
+
+  return c.json({ channel: updated })
+})
+
 // GET /api/channels/:id — get channel by id
 app.get('/:id', async (c) => {
   const id = parseInt(c.req.param('id'))
