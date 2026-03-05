@@ -114,14 +114,20 @@ app.get('/:id', async (c) => {
   })
 })
 
-// PATCH /api/campaigns/:id — update after deposit (set onchainCampaignId, txHash, status)
+// PATCH /api/campaigns/:id — update after deposit (advertiser only)
 app.patch('/:id', async (c) => {
   const id = parseInt(c.req.param('id'))
+  const { userId } = c.get('user')
   const body = await c.req.json<{
     onchainCampaignId?: number
     txHash?: string
     status?: string
   }>()
+
+  // Verify caller is the campaign's advertiser
+  const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, id)).limit(1)
+  if (!campaign) return c.json({ error: 'Campaign not found' }, 404)
+  if (campaign.advertiserId !== userId) return c.json({ error: 'Only the advertiser can update this campaign' }, 403)
 
   const [updated] = await db
     .update(campaigns)

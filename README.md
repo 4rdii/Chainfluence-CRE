@@ -60,7 +60,7 @@ cre workflow simulate my-workflow \
 
 ## TODO
 
-- [ ] **Enforce post duration in workflow** — `main.go` calculates `postedDuration` but never compares it against `campaign.CampaignDuration` before releasing. Add: `if postedDuration < campaign.CampaignDuration { return ActionNone }`.
+- [x] **Enforce post duration in workflow** — `main.go` now checks `postedDuration < campaign.CampaignDuration` before releasing.
 - [ ] **Channel owner check on propose** — `POST /api/channels/:id/propose` does not verify the requesting user owns that channel. Add an ownership guard to prevent spoofed proposals.
 
 ## Secrets & Security

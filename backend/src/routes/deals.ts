@@ -158,10 +158,22 @@ app.post('/:id/accept', async (c) => {
   return c.json({ deal: updated })
 })
 
-// POST /api/deals/:id/fund — mark funded after on-chain tx
+// POST /api/deals/:id/fund — mark funded after on-chain tx (advertiser only)
 app.post('/:id/fund', async (c) => {
   const id = parseInt(c.req.param('id'))
+  const { userId } = c.get('user')
   const body = await c.req.json<{ onchainCampaignId: number }>()
+
+  // Verify caller is the advertiser
+  const [row] = await db
+    .select({ advertiserId: campaigns.advertiserId })
+    .from(deals)
+    .leftJoin(campaigns, eq(deals.campaignId, campaigns.id))
+    .where(eq(deals.id, id))
+    .limit(1)
+  if (!row) return c.json({ error: 'Deal not found' }, 404)
+  if (row.advertiserId !== userId) return c.json({ error: 'Only the advertiser can fund this deal' }, 403)
+
   const [updated] = await db
     .update(deals)
     .set({
@@ -176,10 +188,17 @@ app.post('/:id/fund', async (c) => {
   return c.json({ deal: updated })
 })
 
-// POST /api/deals/:id/post — submit tweet URL
+// POST /api/deals/:id/post — submit tweet URL (influencer only)
 app.post('/:id/post', async (c) => {
   const id = parseInt(c.req.param('id'))
+  const { userId } = c.get('user')
   const body = await c.req.json<{ postUrl: string }>()
+
+  // Verify caller is the influencer
+  const [deal] = await db.select().from(deals).where(eq(deals.id, id)).limit(1)
+  if (!deal) return c.json({ error: 'Deal not found' }, 404)
+  if (deal.influencerId !== userId) return c.json({ error: 'Only the influencer can submit a tweet' }, 403)
+
   const [updated] = await db
     .update(deals)
     .set({ status: 'posted', postUrl: body.postUrl, postedAt: new Date(), updatedAt: new Date() })
@@ -189,11 +208,24 @@ app.post('/:id/post', async (c) => {
   return c.json({ deal: updated })
 })
 
-// POST /api/deals/:id/verify — trigger CRE workflow
+// POST /api/deals/:id/verify — trigger CRE workflow (advertiser or influencer only)
 app.post('/:id/verify', async (c) => {
   const id = parseInt(c.req.param('id'))
-  const [deal] = await db.select().from(deals).where(eq(deals.id, id)).limit(1)
-  if (!deal) return c.json({ error: 'Deal not found' }, 404)
+  const { userId } = c.get('user')
+
+  // Verify caller is advertiser or influencer
+  const [row] = await db
+    .select({ deal: deals, advertiserId: campaigns.advertiserId })
+    .from(deals)
+    .leftJoin(campaigns, eq(deals.campaignId, campaigns.id))
+    .where(eq(deals.id, id))
+    .limit(1)
+  if (!row?.deal) return c.json({ error: 'Deal not found' }, 404)
+  if (row.advertiserId !== userId && row.deal.influencerId !== userId) {
+    return c.json({ error: 'Only the advertiser or influencer can trigger verification' }, 403)
+  }
+
+  const deal = row.deal
   if (!deal.postUrl) return c.json({ error: 'No tweet URL submitted' }, 400)
   if (!deal.onchainCampaignId) return c.json({ error: 'Deal not funded on-chain' }, 400)
 
@@ -213,9 +245,23 @@ app.post('/:id/verify', async (c) => {
   return c.json({ message: 'Verification triggered', dealId: id })
 })
 
-// POST /api/deals/:id/dispute
+// POST /api/deals/:id/dispute (advertiser or influencer only)
 app.post('/:id/dispute', async (c) => {
   const id = parseInt(c.req.param('id'))
+  const { userId } = c.get('user')
+
+  // Verify caller is advertiser or influencer
+  const [row] = await db
+    .select({ deal: deals, advertiserId: campaigns.advertiserId })
+    .from(deals)
+    .leftJoin(campaigns, eq(deals.campaignId, campaigns.id))
+    .where(eq(deals.id, id))
+    .limit(1)
+  if (!row?.deal) return c.json({ error: 'Deal not found' }, 404)
+  if (row.advertiserId !== userId && row.deal.influencerId !== userId) {
+    return c.json({ error: 'Only the advertiser or influencer can dispute this deal' }, 403)
+  }
+
   const [updated] = await db
     .update(deals)
     .set({ status: 'disputed', updatedAt: new Date() })
@@ -225,9 +271,23 @@ app.post('/:id/dispute', async (c) => {
   return c.json({ deal: updated })
 })
 
-// GET /api/deals/:id/verifications — verification history
+// GET /api/deals/:id/verifications — verification history (advertiser or influencer only)
 app.get('/:id/verifications', async (c) => {
   const dealId = parseInt(c.req.param('id'))
+  const { userId } = c.get('user')
+
+  // Verify caller is advertiser or influencer
+  const [row] = await db
+    .select({ deal: deals, advertiserId: campaigns.advertiserId })
+    .from(deals)
+    .leftJoin(campaigns, eq(deals.campaignId, campaigns.id))
+    .where(eq(deals.id, dealId))
+    .limit(1)
+  if (!row?.deal) return c.json({ error: 'Deal not found' }, 404)
+  if (row.advertiserId !== userId && row.deal.influencerId !== userId) {
+    return c.json({ error: 'Only the advertiser or influencer can view verifications' }, 403)
+  }
+
   const rows = await db
     .select()
     .from(verifications)

@@ -31,7 +31,8 @@ app.use(
 // Global error handler — surfaces errors instead of generic 500
 app.onError((err, c) => {
   console.error('Unhandled error:', err)
-  return c.json({ error: err.message, stack: err.stack?.split('\n').slice(0, 3) }, 500)
+  const isDev = process.env.NODE_ENV !== 'production'
+  return c.json({ error: err.message, ...(isDev ? { stack: err.stack?.split('\n').slice(0, 3) } : {}) }, 500)
 })
 
 // Health check
