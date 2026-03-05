@@ -26,36 +26,51 @@ Chainfluence is a decentralized Twitter/X advertising marketplace that removes t
 ## How It Works
 
 ```
-Advertiser                    Smart Contract              CRE Workflow (DON)
-    |                              |                            |
-    |-- create campaign ---------->|                            |
-    |-- deposit funds ------------>| [Funded]                   |
-    |                              |                            |
-Influencer                         |                            |
-    |-- verify via World ID        |                            |
-    |-- accept deal + tweet URL -->| [Accepted]                 |
-    |-- post tweet                 |                            |
-    |                              |                            |
-Backend                            |                            |
-    |-- trigger CRE workflow ------|------------------------->  |
-    |                              |   fetch tweet (X API)      |
-    |                              |   check content hash       |
-    |                              |   check edit status        |
-    |                              |   check post duration      |
-    |                              |   check view count         |
-    |                              |<-- signed report --------- |
-    |                              | [Completed] funds released |
+Advertiser                    Smart Contract              CRE Workflow (DON)         X API v2
+    |                              |                            |                        |
+    |-- create campaign ---------->|                            |                        |
+    |-- deposit funds ------------>| [Funded]                   |                        |
+    |                              |                            |                        |
+Influencer                         |                            |                        |
+    |-- verify via World ID        |                            |                        |
+    |-- accept deal + tweet URL -->| [Accepted]                 |                        |
+    |-- post tweet                 |                            |                        |
+    |                              |                            |                        |
+Backend                            |                            |                        |
+    |-- trigger CRE workflow ------|------------------------->  |                        |
+    |                              |                            |                        |
+    |                              |<-- getDeal() ------------- |                        |
+    |                              |   (contract = immutable    |                        |
+    |                              |    source of truth for     |                        |
+    |                              |    deal criteria, tweet    |                        |
+    |                              |    URL, content hash,      |                        |
+    |                              |    min views, duration)    |                        |
+    |                              |                            |                        |
+    |                              |                            |-- fetch tweet -------> |
+    |                              |                            |<- views, text, edits - |
+    |                              |                            |   (DON consensus)      |
+    |                              |                            |                        |
+    |                              |                            | compare content hash   |
+    |                              |                            | check edit status      |
+    |                              |                            | check post duration    |
+    |                              |                            | check view count       |
+    |                              |                            |                        |
+    |                              |<-- signed report --------- |                        |
+    |                              | [Completed] funds released |                        |
 ```
 
-1. **Advertiser** creates a campaign and deposits tokens into the escrow contract
-2. **Influencer** (verified human via World ID) accepts the deal and provides the tweet URL — stored on-chain
-3. **Backend** triggers the CRE workflow via HTTP with a signed JWT
-4. **CRE Workflow** runs on the DON — fetches tweet data from the X API with multi-node consensus, then verifies:
-   - **Content integrity** — `keccak256(normalizedText)` matches on-chain hash
-   - **Edit detection** — tweet was not modified after posting
-   - **Post duration** — tweet has been live for the required time
-   - **View count** — impressions meet the minimum threshold
-   - **Deadline** — refunds automatically if the campaign has expired
+1. **Advertiser** creates a campaign and deposits tokens into the escrow contract — deal criteria (content hash, min views, duration, deadline, tweet URL) are stored on-chain as the immutable source of truth
+2. **Influencer** (verified human via World ID) accepts the deal and provides the tweet URL — also stored on-chain via `acceptDeal()`
+3. **Backend** triggers the CRE workflow via HTTP with a signed JWT (only the deal ID is passed — no off-chain data)
+4. **CRE Workflow** runs on the DON:
+   - **Reads all deal criteria directly from the contract** via `getDeal()` — the contract is the only source of truth, not the backend database
+   - **Fetches the live tweet** from the X API with multi-node consensus (median for view count, identical match for content)
+   - **Verifies on-chain criteria against live tweet data:**
+     - **Content integrity** — `keccak256(normalizedText)` matches the on-chain content hash
+     - **Edit detection** — tweet was not modified after posting
+     - **Post duration** — tweet has been live for the required number of seconds
+     - **View count** — impressions meet the on-chain minimum threshold
+     - **Deadline** — refunds automatically if the campaign has expired
 5. **Contract** receives the signed fulfillment report via the Keystone forwarder — releases funds to the influencer (minus platform fee) or refunds the advertiser
 
 ### Sybil Resistance — World ID
