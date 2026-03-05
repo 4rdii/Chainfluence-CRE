@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
-import { Twitter, Users, DollarSign, Loader2, ArrowLeft } from 'lucide-react';
+import { Twitter, Users, DollarSign, Loader2, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { GradientButton } from '../components/gradient-button';
 import { apiClient } from '../lib/api';
 
@@ -13,6 +13,7 @@ interface Channel {
   categories: string[];
   pricePerPost: number;
   isActive: boolean;
+  worldIdVerifiedAt?: string;
 }
 
 export function ChannelView() {
@@ -80,6 +81,12 @@ export function ChannelView() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-accent-violet font-semibold text-lg">@{channel.platformHandle}</span>
+              {channel.worldIdVerifiedAt && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium">
+                  <ShieldCheck className="w-3 h-3" />
+                  Verified Human
+                </span>
+              )}
               {channel.platform && (
                 <span className="text-xs text-text-muted capitalize">{channel.platform}</span>
               )}
