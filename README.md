@@ -4,6 +4,10 @@
 
 Chainfluence is a decentralized Twitter/X advertising marketplace that removes trust from the advertiser-influencer relationship. Advertisers escrow funds in a smart contract, influencers post the agreed content, and a **Chainlink CRE workflow** running on a Decentralized Oracle Network automatically verifies the post — releasing payment only when all criteria are met. Influencers prove their humanity via **World ID** to prevent bot farms and Sybil attacks.
 
+## Demo Video
+
+[Watch the full demo walkthrough](docs/chainflunce-demo-cre.mp4)
+
 ## Live Demo
 
 | | URL |
