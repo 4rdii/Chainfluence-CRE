@@ -12,8 +12,8 @@ Chainfluence is a decentralized Twitter/X advertising marketplace that removes t
 
 | | URL |
 |--|-----|
-| Frontend | [chainfluence-cre-front.vercel.app](https://chainfluence-cre-front.vercel.app) |
-| Backend API | [chainfluence-cre-back.vercel.app](https://chainfluence-cre-back.vercel.app) |
+| Frontend | [www.chain-fluence.xyz](https://www.chain-fluence.xyz) |
+| Backend API | [chainfluence-cre-back.vercel.app/api](https://chainfluence-cre-back.vercel.app/api) |
 | Escrow Contract | [`0xDdaD4bfB7338E6b7d5B818Bb721E2B65e3bA2e71`](https://sepolia.etherscan.io/address/0xDdaD4bfB7338E6b7d5B818Bb721E2B65e3bA2e71) (Sepolia) |
 | MTK Token | [`0xeab216ca4381a5c19e751f1471c55b452db0758a`](https://sepolia.etherscan.io/address/0xeab216ca4381a5c19e751f1471c55b452db0758a) (Sepolia) |
 

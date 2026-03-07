@@ -72,7 +72,7 @@ vercel deploy
 
 **Environment variables** (`frontend/.env`):
 ```
-VITE_API_URL=https://your-backend.vercel.app
+VITE_API_URL=https://chainfluence-cre-back.vercel.app
 VITE_WALLETCONNECT_PROJECT_ID=...
 VITE_CHAIN_ID=11155111
 VITE_WORLD_ID_APP_ID=app_23fa3c8124a793479d513fa793a3349c
