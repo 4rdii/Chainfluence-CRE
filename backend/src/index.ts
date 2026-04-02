@@ -8,6 +8,7 @@ import deals from './routes/deals'
 import channels from './routes/channels'
 import marketplace from './routes/marketplace'
 import webhook from './routes/webhook'
+import waitlist from './routes/waitlist'
 
 const app = new Hono().basePath('/api')
 
@@ -46,6 +47,7 @@ app.route('/deals', deals)
 app.route('/channels', channels)
 app.route('/marketplace', marketplace)
 app.route('/webhook', webhook)
+app.route('/waitlist', waitlist)
 
 // Local dev server (VERCEL env var is always set on Vercel)
 if (!process.env.VERCEL) {

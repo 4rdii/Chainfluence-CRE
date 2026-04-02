@@ -53068,10 +53068,10 @@ var require_get_intrinsic = __commonJS({
     };
     var getBaseIntrinsic = function getBaseIntrinsic2(name, allowMissing) {
       var intrinsicName = name;
-      var alias;
+      var alias2;
       if (hasOwn(LEGACY_ALIASES, intrinsicName)) {
-        alias = LEGACY_ALIASES[intrinsicName];
-        intrinsicName = "%" + alias[0] + "%";
+        alias2 = LEGACY_ALIASES[intrinsicName];
+        intrinsicName = "%" + alias2[0] + "%";
       }
       if (hasOwn(INTRINSICS, intrinsicName)) {
         var value = INTRINSICS[intrinsicName];
@@ -53082,7 +53082,7 @@ var require_get_intrinsic = __commonJS({
           throw new $TypeError("intrinsic " + name + " exists, but is not available. Please file an issue!");
         }
         return {
-          alias,
+          alias: alias2,
           name: intrinsicName,
           value
         };
@@ -53105,10 +53105,10 @@ var require_get_intrinsic = __commonJS({
       var intrinsicRealName = intrinsic.name;
       var value = intrinsic.value;
       var skipFurtherCaching = false;
-      var alias = intrinsic.alias;
-      if (alias) {
-        intrinsicBaseName = alias[0];
-        $spliceApply(parts, $concat([0, 1], alias));
+      var alias2 = intrinsic.alias;
+      if (alias2) {
+        intrinsicBaseName = alias2[0];
+        $spliceApply(parts, $concat([0, 1], alias2));
       }
       for (var i = 1, isOwn = true; i < parts.length; i += 1) {
         var part = parts[i];
@@ -55188,14 +55188,14 @@ var Hono = class _Hono {
    * app.route("/api", app2) // GET /api/user
    * ```
    */
-  route(path, app7) {
+  route(path, app8) {
     const subApp = this.basePath(path);
-    app7.routes.map((r) => {
+    app8.routes.map((r) => {
       let handler;
-      if (app7.errorHandler === errorHandler) {
+      if (app8.errorHandler === errorHandler) {
         handler = r.handler;
       } else {
-        handler = async (c, next) => (await compose([], app7.errorHandler)(c, () => r.handler(c, next))).res;
+        handler = async (c, next) => (await compose([], app8.errorHandler)(c, () => r.handler(c, next))).res;
         handler[COMPOSED_HANDLER] = r.handler;
       }
       subApp.#addRoute(r.method, r.path, handler);
@@ -56811,12 +56811,12 @@ var PgEnumColumn = class extends PgColumn {
 // node_modules/drizzle-orm/subquery.js
 var Subquery = class {
   static [entityKind] = "Subquery";
-  constructor(sql3, selection, alias, isWith = false) {
+  constructor(sql3, selection, alias2, isWith = false) {
     this._ = {
       brand: "Subquery",
       sql: sql3,
       selectedFields: selection,
-      alias,
+      alias: alias2,
       isWith
     };
   }
@@ -57129,11 +57129,11 @@ var SQL = class _SQL {
   getSQL() {
     return this;
   }
-  as(alias) {
-    if (alias === void 0) {
+  as(alias2) {
+    if (alias2 === void 0) {
       return this;
     }
-    return new _SQL.Aliased(this, alias);
+    return new _SQL.Aliased(this, alias2);
   }
   mapWith(decoder3) {
     this.decoder = typeof decoder3 === "function" ? { mapFromDriverValue: decoder3 } : decoder3;
@@ -57329,8 +57329,8 @@ var ColumnAliasProxyHandler = class {
   }
 };
 var TableAliasProxyHandler = class {
-  constructor(alias, replaceOriginalName) {
-    this.alias = alias;
+  constructor(alias2, replaceOriginalName) {
+    this.alias = alias2;
     this.replaceOriginalName = replaceOriginalName;
   }
   static [entityKind] = "TableAliasProxyHandler";
@@ -57373,8 +57373,8 @@ var TableAliasProxyHandler = class {
   }
 };
 var RelationTableAliasProxyHandler = class {
-  constructor(alias) {
-    this.alias = alias;
+  constructor(alias2) {
+    this.alias = alias2;
   }
   static [entityKind] = "RelationTableAliasProxyHandler";
   get(target, prop) {
@@ -57393,19 +57393,19 @@ function aliasedTableColumn(column, tableAlias) {
     new ColumnAliasProxyHandler(new Proxy(column.table, new TableAliasProxyHandler(tableAlias, false)))
   );
 }
-function mapColumnsInAliasedSQLToAlias(query, alias) {
-  return new SQL.Aliased(mapColumnsInSQLToAlias(query.sql, alias), query.fieldAlias);
+function mapColumnsInAliasedSQLToAlias(query, alias2) {
+  return new SQL.Aliased(mapColumnsInSQLToAlias(query.sql, alias2), query.fieldAlias);
 }
-function mapColumnsInSQLToAlias(query, alias) {
+function mapColumnsInSQLToAlias(query, alias2) {
   return sql.join(query.queryChunks.map((c) => {
     if (is(c, Column)) {
-      return aliasedTableColumn(c, alias);
+      return aliasedTableColumn(c, alias2);
     }
     if (is(c, SQL)) {
-      return mapColumnsInSQLToAlias(c, alias);
+      return mapColumnsInSQLToAlias(c, alias2);
     }
     if (is(c, SQL.Aliased)) {
-      return mapColumnsInAliasedSQLToAlias(c, alias);
+      return mapColumnsInAliasedSQLToAlias(c, alias2);
     }
     return c;
   }));
@@ -64999,8 +64999,8 @@ var PgDialect = class {
     const tableName = table[PgTable.Symbol.Name];
     const tableSchema = table[PgTable.Symbol.Schema];
     const origTableName = table[PgTable.Symbol.OriginalName];
-    const alias = tableName === origTableName ? void 0 : tableName;
-    const tableSql = sql`${tableSchema ? sql`${sql.identifier(tableSchema)}.` : void 0}${sql.identifier(origTableName)}${alias && sql` ${sql.identifier(alias)}`}`;
+    const alias2 = tableName === origTableName ? void 0 : tableName;
+    const tableSql = sql`${tableSchema ? sql`${sql.identifier(tableSchema)}.` : void 0}${sql.identifier(origTableName)}${alias2 && sql` ${sql.identifier(alias2)}`}`;
     const setSql = this.buildUpdateSet(table, set);
     const fromSql = from14 && sql.join([sql.raw(" from "), this.buildFromTable(from14)]);
     const joinsSql = this.buildJoins(joins);
@@ -65073,17 +65073,17 @@ var PgDialect = class {
         const tableName = table[PgTable.Symbol.Name];
         const tableSchema = table[PgTable.Symbol.Schema];
         const origTableName = table[PgTable.Symbol.OriginalName];
-        const alias = tableName === origTableName ? void 0 : joinMeta.alias;
+        const alias2 = tableName === origTableName ? void 0 : joinMeta.alias;
         joinsArray.push(
-          sql`${sql.raw(joinMeta.joinType)} join${lateralSql} ${tableSchema ? sql`${sql.identifier(tableSchema)}.` : void 0}${sql.identifier(origTableName)}${alias && sql` ${sql.identifier(alias)}`} on ${joinMeta.on}`
+          sql`${sql.raw(joinMeta.joinType)} join${lateralSql} ${tableSchema ? sql`${sql.identifier(tableSchema)}.` : void 0}${sql.identifier(origTableName)}${alias2 && sql` ${sql.identifier(alias2)}`} on ${joinMeta.on}`
         );
       } else if (is(table, View)) {
         const viewName = table[ViewBaseConfig].name;
         const viewSchema = table[ViewBaseConfig].schema;
         const origViewName = table[ViewBaseConfig].originalName;
-        const alias = viewName === origViewName ? void 0 : joinMeta.alias;
+        const alias2 = viewName === origViewName ? void 0 : joinMeta.alias;
         joinsArray.push(
-          sql`${sql.raw(joinMeta.joinType)} join${lateralSql} ${viewSchema ? sql`${sql.identifier(viewSchema)}.` : void 0}${sql.identifier(origViewName)}${alias && sql` ${sql.identifier(alias)}`} on ${joinMeta.on}`
+          sql`${sql.raw(joinMeta.joinType)} join${lateralSql} ${viewSchema ? sql`${sql.identifier(viewSchema)}.` : void 0}${sql.identifier(origViewName)}${alias2 && sql` ${sql.identifier(alias2)}`} on ${joinMeta.on}`
         );
       } else {
         joinsArray.push(
@@ -65125,7 +65125,7 @@ var PgDialect = class {
     const fieldsList = fieldsFlat ?? orderSelectedFields(fields);
     for (const f of fieldsList) {
       if (is(f.field, Column) && getTableName(f.field.table) !== (is(table, Subquery) ? table._.alias : is(table, PgViewBase) ? table[ViewBaseConfig].name : is(table, SQL) ? void 0 : getTableName(table)) && !((table2) => joins?.some(
-        ({ alias }) => alias === (table2[Table.Symbol.IsAlias] ? getTableName(table2) : table2[Table.Symbol.BaseName])
+        ({ alias: alias2 }) => alias2 === (table2[Table.Symbol.IsAlias] ? getTableName(table2) : table2[Table.Symbol.BaseName])
       ))(f.field.table)) {
         const tableName = getTableName(f.field.table);
         throw new Error(
@@ -66724,10 +66724,10 @@ var PgSelectQueryBuilderBase = class extends TypedQueryBuilder {
     const { typings: _typings, ...rest } = this.dialect.sqlToQuery(this.getSQL());
     return rest;
   }
-  as(alias) {
+  as(alias2) {
     return new Proxy(
-      new Subquery(this.getSQL(), this.config.fields, alias),
-      new SelectionProxyHandler({ alias, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
+      new Subquery(this.getSQL(), this.config.fields, alias2),
+      new SelectionProxyHandler({ alias: alias2, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
     );
   }
   /** @internal */
@@ -66820,7 +66820,7 @@ var QueryBuilder = class {
     this.dialect = is(dialect, PgDialect) ? dialect : void 0;
     this.dialectConfig = is(dialect, PgDialect) ? void 0 : dialect;
   }
-  $with(alias) {
+  $with(alias2) {
     const queryBuilder = this;
     return {
       as(qb) {
@@ -66828,8 +66828,8 @@ var QueryBuilder = class {
           qb = qb(queryBuilder);
         }
         return new Proxy(
-          new WithSubquery(qb.getSQL(), qb.getSelectedFields(), alias, true),
-          new SelectionProxyHandler({ alias, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
+          new WithSubquery(qb.getSQL(), qb.getSelectedFields(), alias2, true),
+          new SelectionProxyHandler({ alias: alias2, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
         );
       }
     };
@@ -67578,7 +67578,7 @@ var PgDatabase = class {
    * const result = await db.with(sq).select({ name: sq.name }).from(sq);
    * ```
    */
-  $with(alias) {
+  $with(alias2) {
     const self2 = this;
     return {
       as(qb) {
@@ -67586,8 +67586,8 @@ var PgDatabase = class {
           qb = qb(new QueryBuilder(self2.dialect));
         }
         return new Proxy(
-          new WithSubquery(qb.getSQL(), qb.getSelectedFields(), alias, true),
-          new SelectionProxyHandler({ alias, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
+          new WithSubquery(qb.getSQL(), qb.getSelectedFields(), alias2, true),
+          new SelectionProxyHandler({ alias: alias2, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
         );
       }
     };
@@ -67784,6 +67784,11 @@ var PgDatabase = class {
     return this.session.transaction(transaction, config);
   }
 };
+
+// node_modules/drizzle-orm/pg-core/alias.js
+function alias(table, alias2) {
+  return new Proxy(table, new TableAliasProxyHandler(alias2, false));
+}
 
 // node_modules/drizzle-orm/pg-core/indexes.js
 var IndexBuilderOn = class {
@@ -68241,7 +68246,8 @@ __export(schema_exports, {
   channels: () => channels,
   deals: () => deals,
   users: () => users,
-  verifications: () => verifications
+  verifications: () => verifications,
+  waitlist: () => waitlist
 });
 var users = pgTable(
   "users",
@@ -68270,6 +68276,8 @@ var channels = pgTable("channels", {
   // in cents USD
   isActive: boolean("is_active").default(true),
   verifiedAt: timestamp("verified_at"),
+  worldIdNullifier: varchar("world_id_nullifier", { length: 100 }),
+  worldIdVerifiedAt: timestamp("world_id_verified_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -68295,6 +68303,8 @@ var campaigns = pgTable("campaigns", {
   // draft | funded | active | completed | refunded | cancelled | disputed
   txHash: varchar("tx_hash", { length: 66 }),
   categories: jsonb("categories").$type().default([]),
+  isDirectDeal: boolean("is_direct_deal").default(false),
+  // true when created via channel propose — hidden from campaign list, only deal is shown
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -68330,6 +68340,17 @@ var verifications = pgTable("verifications", {
   message: text("message"),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
+var waitlist = pgTable(
+  "waitlist",
+  {
+    id: serial("id").primaryKey(),
+    email: varchar("email", { length: 255 }).notNull(),
+    role: varchar("role", { length: 20 }).default("unknown"),
+    // influencer | advertiser | unknown
+    createdAt: timestamp("created_at").defaultNow().notNull()
+  },
+  (table) => [uniqueIndex("waitlist_email_idx").on(table.email)]
+);
 var chainEvents = pgTable("chain_events", {
   id: serial("id").primaryKey(),
   eventName: varchar("event_name", { length: 100 }).notNull(),
@@ -69728,7 +69749,12 @@ var app = new Hono2();
 app.use("*", authMiddleware);
 app.get("/", async (c) => {
   const { userId } = c.get("user");
-  const rows = await db.select().from(campaigns).where(eq(campaigns.advertiserId, userId)).orderBy(desc(campaigns.createdAt));
+  const rows = await db.select().from(campaigns).where(
+    and(
+      eq(campaigns.advertiserId, userId),
+      or(eq(campaigns.isDirectDeal, false), isNull(campaigns.isDirectDeal))
+    )
+  ).orderBy(desc(campaigns.createdAt));
   if (rows.length === 0) return c.json({ campaigns: [] });
   const campaignIds = rows.map((r) => r.id);
   const countRows = await db.select({ campaignId: deals.campaignId, count: sql`count(*)::int` }).from(deals).where(inArray(deals.campaignId, campaignIds)).groupBy(deals.campaignId);
@@ -69791,7 +69817,11 @@ app.get("/:id", async (c) => {
 });
 app.patch("/:id", async (c) => {
   const id = parseInt(c.req.param("id"));
+  const { userId } = c.get("user");
   const body = await c.req.json();
+  const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, id)).limit(1);
+  if (!campaign) return c.json({ error: "Campaign not found" }, 404);
+  if (campaign.advertiserId !== userId) return c.json({ error: "Only the advertiser can update this campaign" }, 403);
   const [updated] = await db.update(campaigns).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(campaigns.id, id)).returning();
   if (!updated) return c.json({ error: "Campaign not found" }, 404);
   return c.json({ campaign: updated });
@@ -79858,18 +79888,15 @@ var sepolia = /* @__PURE__ */ defineChain({
 });
 
 // src/lib/escrow-chain.ts
-var ESCROW_ADDRESS = process.env.ESCROW_ADDRESS || "0x09431B4603E4Aa7511dD9341f2852fD031eA8C71";
-var RPC_URL = process.env.RPC_URL || "https://rpc.ankr.com/eth_sepolia";
+var ESCROW_ADDRESS = process.env.ESCROW_ADDRESS || "0xDdaD4bfB7338E6b7d5B818Bb721E2B65e3bA2e71";
+var RPC_URL = process.env.RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com";
 var CampaignState = {
-  Proposed: 0,
+  Funded: 0,
   Accepted: 1,
-  Funded: 2,
-  Posted: 3,
-  Verifying: 4,
-  Completed: 5,
-  Refunded: 6,
-  Disputed: 7,
-  Cancelled: 8
+  Completed: 2,
+  Refunded: 3,
+  Disputed: 4,
+  Cancelled: 5
 };
 var getDealAbi = [
   {
@@ -79878,17 +79905,25 @@ var getDealAbi = [
     stateMutability: "view",
     inputs: [{ name: "dealId", type: "uint256" }],
     outputs: [
-      { name: "advertiser", type: "address" },
-      { name: "influencer", type: "address" },
-      { name: "token", type: "address" },
-      { name: "amount", type: "uint256" },
-      { name: "contentHash", type: "bytes32" },
-      { name: "minViews", type: "uint256" },
-      { name: "campaignDuration", type: "uint64" },
-      { name: "deadline", type: "uint256" },
-      { name: "state", type: "uint8" },
-      { name: "platformFee", type: "uint256" },
-      { name: "influencerAccepted", type: "bool" }
+      {
+        name: "",
+        type: "tuple",
+        components: [
+          { name: "advertiser", type: "address" },
+          { name: "influencer", type: "address" },
+          { name: "token", type: "address" },
+          { name: "amount", type: "uint256" },
+          { name: "contentHash", type: "bytes32" },
+          { name: "minViews", type: "uint256" },
+          { name: "campaignDuration", type: "uint64" },
+          { name: "deadline", type: "uint256" },
+          { name: "state", type: "uint8" },
+          { name: "platformFee", type: "uint256" },
+          { name: "influencerAccepted", type: "bool" },
+          { name: "channelName", type: "string" },
+          { name: "tweetUrl", type: "string" }
+        ]
+      }
     ]
   }
 ];
@@ -79896,7 +79931,56 @@ var publicClient = createPublicClient({
   chain: sepolia,
   transport: http(RPC_URL)
 });
+var dealEventsAbi = [
+  {
+    name: "DealAccepted",
+    type: "event",
+    inputs: [
+      { name: "dealId", type: "uint256", indexed: true },
+      { name: "influencer", type: "address", indexed: true },
+      { name: "tweetUrl", type: "string", indexed: false }
+    ]
+  },
+  {
+    name: "FundsReleased",
+    type: "event",
+    inputs: [
+      { name: "dealId", type: "uint256", indexed: true },
+      { name: "influencer", type: "address", indexed: true },
+      { name: "token", type: "address", indexed: false },
+      { name: "influencerAmount", type: "uint256", indexed: false },
+      { name: "feeAmount", type: "uint256", indexed: false }
+    ]
+  },
+  {
+    name: "FundsRefunded",
+    type: "event",
+    inputs: [
+      { name: "dealId", type: "uint256", indexed: true },
+      { name: "advertiser", type: "address", indexed: true },
+      { name: "token", type: "address", indexed: false },
+      { name: "amount", type: "uint256", indexed: false }
+    ]
+  }
+];
+async function getDealTxHashes(dealId) {
+  try {
+    const [acceptedLogs, releasedLogs, refundedLogs] = await Promise.all([
+      publicClient.getLogs({ address: ESCROW_ADDRESS, event: dealEventsAbi[0], args: { dealId: BigInt(dealId) }, fromBlock: 0n, toBlock: "latest" }),
+      publicClient.getLogs({ address: ESCROW_ADDRESS, event: dealEventsAbi[1], args: { dealId: BigInt(dealId) }, fromBlock: 0n, toBlock: "latest" }),
+      publicClient.getLogs({ address: ESCROW_ADDRESS, event: dealEventsAbi[2], args: { dealId: BigInt(dealId) }, fromBlock: 0n, toBlock: "latest" })
+    ]);
+    return {
+      acceptDealTx: acceptedLogs[0]?.transactionHash ?? void 0,
+      settlementTx: (releasedLogs[0] ?? refundedLogs[0])?.transactionHash ?? void 0
+    };
+  } catch (err) {
+    console.error("[escrow-chain] getDealTxHashes failed", err);
+    return {};
+  }
+}
 async function getDealStateFromChain(dealId) {
+  console.log("[escrow-chain] getDealStateFromChain called", { dealId, escrowAddress: ESCROW_ADDRESS, rpcUrl: RPC_URL });
   try {
     const result = await publicClient.readContract({
       address: ESCROW_ADDRESS,
@@ -79904,33 +79988,42 @@ async function getDealStateFromChain(dealId) {
       functionName: "getDeal",
       args: [BigInt(dealId)]
     });
-    const state = Number(result[8]);
+    const state = Number(result.state);
+    console.log("[escrow-chain] getDeal contract result", { dealId, rawState: state });
+    let status;
     switch (state) {
       case CampaignState.Completed:
-        return "completed";
+        status = "completed";
+        break;
       case CampaignState.Refunded:
-        return "refunded";
+        status = "refunded";
+        break;
       case CampaignState.Disputed:
-        return "disputed";
+        status = "disputed";
+        break;
       case CampaignState.Cancelled:
-        return "cancelled";
+        status = "cancelled";
+        break;
       case CampaignState.Funded:
-        return "funded";
+        status = "funded";
+        break;
       case CampaignState.Accepted:
-        return "accepted";
-      case CampaignState.Posted:
-        return "posted";
-      case CampaignState.Verifying:
-        return "verifying";
+        status = "accepted";
+        break;
       default:
-        return "funded";
+        status = "funded";
     }
-  } catch {
+    console.log("[escrow-chain] getDealStateFromChain returning", { dealId, status });
+    return status;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[escrow-chain] getDealStateFromChain failed", { dealId, error: msg });
     return null;
   }
 }
 
 // src/routes/deals.ts
+var influencerUsers = alias(users, "influencer_users");
 var app2 = new Hono2();
 app2.use("*", authMiddleware);
 app2.get("/", async (c) => {
@@ -79972,40 +80065,61 @@ app2.get("/:id", async (c) => {
   const rows = await db.select({
     deal: deals,
     campaignAdvertiserId: campaigns.advertiserId,
-    advertiserWalletAddress: users.walletAddress
-  }).from(deals).leftJoin(campaigns, eq(deals.campaignId, campaigns.id)).leftJoin(users, eq(campaigns.advertiserId, users.id)).where(eq(deals.id, id)).limit(1);
+    advertiserWalletAddress: users.walletAddress,
+    influencerWalletAddress: influencerUsers.walletAddress
+  }).from(deals).leftJoin(campaigns, eq(deals.campaignId, campaigns.id)).leftJoin(users, eq(campaigns.advertiserId, users.id)).leftJoin(influencerUsers, eq(deals.influencerId, influencerUsers.id)).where(eq(deals.id, id)).limit(1);
   const row = rows[0];
   if (!row?.deal) return c.json({ error: "Deal not found" }, 404);
   let deal = row.deal;
   if (deal.onchainCampaignId != null && !["completed", "refunded", "disputed", "cancelled"].includes(deal.status)) {
+    console.log("[deals] GET /:id syncing from chain", { dealId: id, onchainCampaignId: deal.onchainCampaignId, dbStatus: deal.status });
     const onChainStatus = await getDealStateFromChain(deal.onchainCampaignId);
+    console.log("[deals] GET /:id chain sync result", { dealId: id, onChainStatus, dbStatus: deal.status, willUpdate: Boolean(onChainStatus && ["completed", "refunded", "disputed", "cancelled"].includes(onChainStatus) && onChainStatus !== deal.status) });
     if (onChainStatus && ["completed", "refunded", "disputed", "cancelled"].includes(onChainStatus) && onChainStatus !== deal.status) {
       const [updated] = await db.update(deals).set({
         status: onChainStatus,
         updatedAt: /* @__PURE__ */ new Date(),
         ...onChainStatus === "completed" ? { completedAt: /* @__PURE__ */ new Date() } : {}
       }).where(eq(deals.id, id)).returning();
-      if (updated) deal = updated;
+      if (updated) {
+        deal = updated;
+        console.log("[deals] GET /:id updated deal from chain", { dealId: id, newStatus: onChainStatus });
+      }
     }
   }
   const isAdvertiser = row.campaignAdvertiserId != null && row.campaignAdvertiserId === userId;
   const isInfluencer = deal.influencerId === userId;
+  const chainTxHashes = deal.onchainCampaignId != null ? await getDealTxHashes(deal.onchainCampaignId).catch(() => ({})) : {};
   return c.json({
     deal,
     isAdvertiser,
     isInfluencer,
-    advertiserWalletAddress: row.advertiserWalletAddress ?? void 0
+    advertiserWalletAddress: row.advertiserWalletAddress ?? void 0,
+    influencerWalletAddress: row.influencerWalletAddress ?? void 0,
+    chainTxHashes
   });
 });
 app2.post("/:id/accept", async (c) => {
   const id = parseInt(c.req.param("id"));
+  const { userId } = c.get("user");
+  const [row] = await db.select({ deal: deals, isDirectDeal: campaigns.isDirectDeal }).from(deals).leftJoin(campaigns, eq(deals.campaignId, campaigns.id)).where(eq(deals.id, id)).limit(1);
+  const deal = row?.deal;
+  if (!deal) return c.json({ error: "Deal not found" }, 404);
+  if (deal.status !== "proposed") return c.json({ error: "Deal is not in proposed state" }, 400);
+  if (row?.isDirectDeal === true && deal.influencerId !== userId) {
+    return c.json({ error: "Only the influencer can accept this deal" }, 403);
+  }
   const [updated] = await db.update(deals).set({ status: "accepted", acceptedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq(deals.id, id)).returning();
   if (!updated) return c.json({ error: "Deal not found" }, 404);
   return c.json({ deal: updated });
 });
 app2.post("/:id/fund", async (c) => {
   const id = parseInt(c.req.param("id"));
+  const { userId } = c.get("user");
   const body = await c.req.json();
+  const [row] = await db.select({ advertiserId: campaigns.advertiserId }).from(deals).leftJoin(campaigns, eq(deals.campaignId, campaigns.id)).where(eq(deals.id, id)).limit(1);
+  if (!row) return c.json({ error: "Deal not found" }, 404);
+  if (row.advertiserId !== userId) return c.json({ error: "Only the advertiser can fund this deal" }, 403);
   const [updated] = await db.update(deals).set({
     status: "funded",
     onchainCampaignId: body.onchainCampaignId,
@@ -80017,15 +80131,24 @@ app2.post("/:id/fund", async (c) => {
 });
 app2.post("/:id/post", async (c) => {
   const id = parseInt(c.req.param("id"));
+  const { userId } = c.get("user");
   const body = await c.req.json();
+  const [deal] = await db.select().from(deals).where(eq(deals.id, id)).limit(1);
+  if (!deal) return c.json({ error: "Deal not found" }, 404);
+  if (deal.influencerId !== userId) return c.json({ error: "Only the influencer can submit a tweet" }, 403);
   const [updated] = await db.update(deals).set({ status: "posted", postUrl: body.postUrl, postedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq(deals.id, id)).returning();
   if (!updated) return c.json({ error: "Deal not found" }, 404);
   return c.json({ deal: updated });
 });
 app2.post("/:id/verify", async (c) => {
   const id = parseInt(c.req.param("id"));
-  const [deal] = await db.select().from(deals).where(eq(deals.id, id)).limit(1);
-  if (!deal) return c.json({ error: "Deal not found" }, 404);
+  const { userId } = c.get("user");
+  const [row] = await db.select({ deal: deals, advertiserId: campaigns.advertiserId }).from(deals).leftJoin(campaigns, eq(deals.campaignId, campaigns.id)).where(eq(deals.id, id)).limit(1);
+  if (!row?.deal) return c.json({ error: "Deal not found" }, 404);
+  if (row.advertiserId !== userId && row.deal.influencerId !== userId) {
+    return c.json({ error: "Only the advertiser or influencer can trigger verification" }, 403);
+  }
+  const deal = row.deal;
   if (!deal.postUrl) return c.json({ error: "No tweet URL submitted" }, 400);
   if (!deal.onchainCampaignId) return c.json({ error: "Deal not funded on-chain" }, 400);
   await db.update(deals).set({ status: "verifying", updatedAt: /* @__PURE__ */ new Date() }).where(eq(deals.id, id));
@@ -80040,12 +80163,24 @@ app2.post("/:id/verify", async (c) => {
 });
 app2.post("/:id/dispute", async (c) => {
   const id = parseInt(c.req.param("id"));
+  const { userId } = c.get("user");
+  const [row] = await db.select({ deal: deals, advertiserId: campaigns.advertiserId }).from(deals).leftJoin(campaigns, eq(deals.campaignId, campaigns.id)).where(eq(deals.id, id)).limit(1);
+  if (!row?.deal) return c.json({ error: "Deal not found" }, 404);
+  if (row.advertiserId !== userId && row.deal.influencerId !== userId) {
+    return c.json({ error: "Only the advertiser or influencer can dispute this deal" }, 403);
+  }
   const [updated] = await db.update(deals).set({ status: "disputed", updatedAt: /* @__PURE__ */ new Date() }).where(eq(deals.id, id)).returning();
   if (!updated) return c.json({ error: "Deal not found" }, 404);
   return c.json({ deal: updated });
 });
 app2.get("/:id/verifications", async (c) => {
   const dealId = parseInt(c.req.param("id"));
+  const { userId } = c.get("user");
+  const [row] = await db.select({ deal: deals, advertiserId: campaigns.advertiserId }).from(deals).leftJoin(campaigns, eq(deals.campaignId, campaigns.id)).where(eq(deals.id, dealId)).limit(1);
+  if (!row?.deal) return c.json({ error: "Deal not found" }, 404);
+  if (row.advertiserId !== userId && row.deal.influencerId !== userId) {
+    return c.json({ error: "Only the advertiser or influencer can view verifications" }, 403);
+  }
   const rows = await db.select().from(verifications).where(eq(verifications.dealId, dealId)).orderBy(desc(verifications.createdAt));
   return c.json({ verifications: rows });
 });
@@ -80087,7 +80222,9 @@ app3.post("/:id/propose", async (c) => {
     campaignDuration: body.campaignDuration ?? 0,
     expiryDeadline: new Date(body.expiryDeadline),
     categories: body.categories ?? [],
-    status: "draft"
+    status: "draft",
+    isDirectDeal: true
+    // hidden from campaign list; both sides only see the deal
   }).returning();
   const [deal] = await db.insert(deals).values({
     campaignId: campaign.id,
@@ -80097,6 +80234,44 @@ app3.post("/:id/propose", async (c) => {
     status: "proposed"
   }).returning();
   return c.json({ campaign, deal }, 201);
+});
+app3.post("/:id/verify-worldid", async (c) => {
+  const channelId = parseInt(c.req.param("id"));
+  const { userId } = c.get("user");
+  const [channel] = await db.select().from(channels).where(eq(channels.id, channelId)).limit(1);
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+  if (channel.userId !== userId) return c.json({ error: "Not authorized" }, 403);
+  if (channel.worldIdNullifier) return c.json({ error: "Channel already verified with World ID" }, 400);
+  const body = await c.req.json();
+  const appId = process.env.WORLD_ID_APP_ID;
+  const actionId = process.env.WORLD_ID_ACTION_ID || "verify-channel";
+  if (!appId) return c.json({ error: "World ID not configured on server" }, 500);
+  const verifyRes = await fetch(
+    `https://developer.worldcoin.org/api/v2/verify/${appId}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        merkle_root: body.merkle_root,
+        nullifier_hash: body.nullifier_hash,
+        proof: body.proof,
+        action: actionId,
+        verification_level: body.verification_level
+      })
+    }
+  );
+  if (!verifyRes.ok) {
+    const errData = await verifyRes.json().catch(() => ({}));
+    return c.json({ error: "World ID verification failed", detail: errData.detail || verifyRes.statusText }, 400);
+  }
+  const [existing] = await db.select().from(channels).where(eq(channels.worldIdNullifier, body.nullifier_hash)).limit(1);
+  if (existing) return c.json({ error: "This World ID has already been used to verify another channel" }, 409);
+  const [updated] = await db.update(channels).set({
+    worldIdNullifier: body.nullifier_hash,
+    worldIdVerifiedAt: /* @__PURE__ */ new Date(),
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(channels.id, channelId)).returning();
+  return c.json({ channel: updated });
 });
 app3.get("/:id", async (c) => {
   const id = parseInt(c.req.param("id"));
@@ -80129,7 +80304,10 @@ var channels_default = app3;
 var app4 = new Hono2();
 app4.get("/campaigns", async (c) => {
   const { search, minBudget, maxBudget, sort } = c.req.query();
-  const conditions = [or(eq(campaigns.status, "draft"), eq(campaigns.status, "funded"))];
+  const conditions = [
+    or(eq(campaigns.status, "draft"), eq(campaigns.status, "funded")),
+    or(eq(campaigns.isDirectDeal, false), isNull(campaigns.isDirectDeal))
+  ];
   if (search) conditions.push(ilike(campaigns.title, `%${search}%`));
   if (minBudget) conditions.push(gte(campaigns.amount, BigInt(minBudget)));
   if (maxBudget) conditions.push(lte(campaigns.amount, BigInt(maxBudget)));
@@ -80222,38 +80400,63 @@ function parseEventName(topic) {
 }
 var webhook_default = app5;
 
+// src/routes/waitlist.ts
+var app6 = new Hono2();
+app6.post("/", async (c) => {
+  const { email, role } = await c.req.json();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return c.json({ error: "Valid email is required" }, 400);
+  }
+  try {
+    await db.insert(waitlist).values({
+      email: email.toLowerCase().trim(),
+      role: role || "unknown"
+    });
+  } catch (err) {
+    if (err.code === "23505") {
+      return c.json({ success: true });
+    }
+    throw err;
+  }
+  return c.json({ success: true });
+});
+var waitlist_default = app6;
+
 // src/index.ts
-var app6 = new Hono2().basePath("/api");
-app6.use("*", logger());
-app6.use(
+var app7 = new Hono2().basePath("/api");
+app7.use("*", logger());
+app7.use(
   "*",
   cors({
     origin: (origin) => {
       const allowed = [
         "http://localhost:5173",
         "http://localhost:3000",
-        process.env.FRONTEND_URL?.trim()
+        process.env.FRONTEND_URL?.trim(),
+        process.env.CUSTOM_DOMAIN_URL?.trim()
       ].filter(Boolean);
       return allowed.includes(origin) ? origin : allowed[0];
     },
     credentials: true
   })
 );
-app6.onError((err, c) => {
+app7.onError((err, c) => {
   console.error("Unhandled error:", err);
-  return c.json({ error: err.message, stack: err.stack?.split("\n").slice(0, 3) }, 500);
+  const isDev = process.env.NODE_ENV !== "production";
+  return c.json({ error: err.message, ...isDev ? { stack: err.stack?.split("\n").slice(0, 3) } : {} }, 500);
 });
-app6.get("/health", (c) => c.json({ status: "ok", timestamp: Date.now() }));
-app6.route("/auth", auth_default);
-app6.route("/campaigns", campaigns_default);
-app6.route("/deals", deals_default);
-app6.route("/channels", channels_default);
-app6.route("/marketplace", marketplace_default);
-app6.route("/webhook", webhook_default);
+app7.get("/health", (c) => c.json({ status: "ok", timestamp: Date.now() }));
+app7.route("/auth", auth_default);
+app7.route("/campaigns", campaigns_default);
+app7.route("/deals", deals_default);
+app7.route("/channels", channels_default);
+app7.route("/marketplace", marketplace_default);
+app7.route("/webhook", webhook_default);
+app7.route("/waitlist", waitlist_default);
 if (!process.env.VERCEL) {
   Promise.resolve().then(() => (init_dist(), dist_exports)).then(({ serve: serve2 }) => {
     const port = parseInt(process.env.PORT || "3001");
-    serve2({ fetch: app6.fetch, port });
+    serve2({ fetch: app7.fetch, port });
     console.log(`Server running on http://localhost:${port}`);
   });
 }
@@ -80276,7 +80479,7 @@ async function vercelHandler(req, res) {
       headers,
       body
     });
-    const response = await app6.fetch(request);
+    const response = await app7.fetch(request);
     res.statusCode = response.status;
     response.headers.forEach((value, key) => {
       res.setHeader(key, value);

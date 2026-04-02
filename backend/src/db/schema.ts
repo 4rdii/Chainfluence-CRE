@@ -104,6 +104,17 @@ export const verifications = pgTable('verifications', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
+export const waitlist = pgTable(
+  'waitlist',
+  {
+    id: serial('id').primaryKey(),
+    email: varchar('email', { length: 255 }).notNull(),
+    role: varchar('role', { length: 20 }).default('unknown'), // influencer | advertiser | unknown
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex('waitlist_email_idx').on(table.email)]
+)
+
 export const chainEvents = pgTable('chain_events', {
   id: serial('id').primaryKey(),
   eventName: varchar('event_name', { length: 100 }).notNull(),

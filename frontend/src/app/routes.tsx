@@ -1,6 +1,7 @@
-import { createBrowserRouter, Navigate } from 'react-router';
+import { createBrowserRouter } from 'react-router';
 import { AppLayout } from './components/layout/app-layout';
 import { ConnectWallet } from './pages/connect-wallet';
+import { Landing } from './pages/landing';
 import { Dashboard } from './pages/dashboard';
 import { Marketplace } from './pages/marketplace';
 import { CreateCampaign } from './pages/create-campaign';
@@ -18,7 +19,7 @@ import { Docs } from './pages/docs';
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/connect" replace />,
+    element: <Landing />,
   },
   {
     path: '/connect',

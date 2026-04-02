@@ -29,6 +29,13 @@
       "when": 1772736624317,
       "tag": "0003_superb_meltdown",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775126674034,
+      "tag": "0004_aromatic_nova",
+      "breakpoints": true
     }
   ]
 }
